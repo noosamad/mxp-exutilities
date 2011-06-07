@@ -17,6 +17,7 @@ varUNDERLINE = 0
 varINDENT = 0
 varNODATA = 0
 varSKIP = 0
+vardecimals = 0
 
 
 varHIDE = GETMEASUREFORMAT(varMeasure,'HIDE')
@@ -91,22 +92,29 @@ WHEN varHIDE EQ 0 AND varEXCLUDE EQ 0
 
 	WHEN varNODATA NE 1
 		STARTCOLUMN startDataCol
-		defformat = '>>>,>>>,>>>,>>9'
-		WHEN decplaces LT 9 AND decplaces GT 0
-			ADDTEXT defformat '.'
-                        FOR j,1,decplaces,1
-				ADDTEXT defformat '9'
-			ENDFOR
-		ELSE
-			WHEN varDECIMALS GT 0 AND decplaces EQ 9
-				ADDTEXT defformat '.'
-				FOR j,1,varDECIMALS,1
-					ADDTEXT defformat '9'
-				ENDFOR
-			ENDWHEN
-		ENDWHEN
-		FORMAT #defformat FOR varData
-		RIGHT
+...
+... 03/06/2011 remove the formatting for the data
+...
+.		defformat = '>>>,>>>,>>>,>>9'
+.		WHEN decplaces LT 9 AND decplaces GT 0
+.			ADDTEXT defformat '.'
+.                       FOR j,1,decplaces,1
+.				ADDTEXT defformat '9'
+.			ENDFOR
+.		ELSE
+.			WHEN varDECIMALS GT 0 AND decplaces EQ 9
+.				ADDTEXT defformat '.'
+.				FOR j,1,varDECIMALS,1
+.					ADDTEXT defformat '9'
+.				ENDFOR
+.			ENDWHEN
+.		ENDWHEN
+.		FORMAT #defformat FOR varData
+.		RIGHT
+...
+... 03/06/2011 Add the Decimals option
+...
+		DECIMALS Vardecimals
 		WHEN varREDNEGATIVE EQ 0
 			TEXT varData
 		ELSE
