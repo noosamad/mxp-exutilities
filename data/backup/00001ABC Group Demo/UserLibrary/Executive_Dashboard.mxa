@@ -1,0 +1,151 @@
+﻿PROCEDURE reportScript
+STARTREPORT
+...
+... switch off gridlines and gridlabels
+...
+     nogridlines
+     noheaders
+...
+... open beverage sales cube
+...
+     folder 'cube'
+     cube 'beverage sales'
+...
+... set columnwidths in pixels
+...
+        COLUMNWIDTH 30, 1
+        COLUMNWIDTH 100,2
+        COLUMNWIDTH 175,3-4
+        COLUMNWIDTH 30, 5
+        COLUMNWIDTH 170,6-8
+rowheight 27,2
+        NOGRIDLINES
+        NOHEADERS
+        FONT 'ARIAL'
+...
+... get period names into the mname array
+...
+select periodlist1
+for j,1,12,1
+  mname[j]=pname[j]
+endfor
+...
+... output title and month selector on same line
+...
+     .sameline
+     merge startcell 2,2 endcell 2,8
+     FONT 'Arial'
+     ITALIC
+     BOLD
+     SKIP 1
+     FONTSIZE 24
+     STARTCOLUMN 2
+     BGCOLOR 'GREY'
+     COLOR 'WHITE'
+     TEXT 'Beverage Group - Executive Dashboard'
+     .NOBOLD
+     BGCOLOR 'WHITE'
+     COLOR 'BLACK'
+     NOITALIC
+     FONTSIZE 14
+     SKIP 2
+     STARTCOLUMN 2
+     .RIGHT
+     SAMELINE
+     TEXT 'Period'
+...
+... assume current reporting month is this month -1 except for month 1
+...
+     m=dateinfo(_TODAY,'Month')
+     lm=1
+     when m GT 1
+         lm=m-1
+     endwhen
+     mthchoice = mname[lm]
+...
+... output period list as droplist with reporting month as default
+...
+     droplist 'period' choice 1-12 default #mthchoice answer 'curMth'
+     differentline
+     SKIP 3
+...
+... get required data to memory and load to array variable for sorting
+... which will be used to identify top performers and bottom performers
+...
+     ACROSS 'Volume/rate/expense' columns 'Volume'
+     DOWN 'Brand'
+     memory 'all' COUNT 'nr'
+     FOR j,1,nr,1
+        format '<<<<9' for j
+        sname='series'
+        addtext sname j
+        trim sname
+        volume[j]=##sname[1]
+     ENDFOR
+...
+... use sort command to sort volume such that myindex is a pointer to the sorted members
+...
+        sort index myindex orderby Volume desc
+... use total line as maxvalue
+        maxvalue = #volume[myindex[1]]
+...
+... output a barchart of current month volume by product first
+...
+        across 'period' columns #curMth
+        down 'brand'
+        droplist 'volume/rate/expense' choice 'volume'
+        STARTCOLUMN 2
+        threedbar 1-8
+        CHART width 3
+        CHART height 20
+        CHART TitleStyle FONT 'ARIAL' FONTSIZE 12 BOLD
+        ctitle='Beverage Sales Volume for '
+        addtext ctitle curmth
+        chart title #ctitle
+        CHART xtitle ' '
+        CHART ytitle ' '
+        DRAW CHART pointheight 290
+... output speedometer titles
+        CENTER
+        BOLD
+        merge startcell 7,6 endcell 7, 8
+        Center
+        startcell 6,7
+        bgcolor 'green'
+        color 'white'
+        TEXT 'TOP 3 BEVERAGES'
+        merge startcell 16,6 endcell 16, 8
+        STARTCELL 6,16
+        bgcolor 'orange'
+        color 'white'
+        TEXT 'BOTTOM 3 BEVERAGES'
+    color 'lightblue'
+... output top brands, but remember that Total will be highest ranked member, so start at second member because the first member is 1
+        FOR j,2,4,1
+                startcell #j+4,8
+                SPEEDO WIDTH 1
+                SPEEDO HEIGHT 8
+                SPEEDO MIN 0 MAX #maxvalue VALUE #volume[myindex[j]]
+                SPEEDO TITLE #dim2[myindex[j]]
+                SPEEDO TITLESTYLE FONT 'ARIAL' FONTSIZE 12 BOLD COLOR 'BLACK'
+                .SPEEDO SBGCOLOR 'green'
+                DRAW SPEEDO
+        ENDFOR
+        
+... output bottom brands from end of the list
+        rowpos=5
+        x = 8
+        FOR j,nr,nr-2,-1 
+                startcell x,17
+                SPEEDO WIDTH 1
+                SPEEDO HEIGHT 8
+                SPEEDO TITLE #dim2[myindex[j]]
+                SPEEDO MIN 0 MAX #maxvalue VALUE #volume[myindex[j]]
+                SPEEDO TITLESTYLE FONT 'ARIAL' FONTSIZE 12 BOLD COLOR 'BLACK'
+                .SPEEDO SBGCOLOR 'Maroon'
+                DRAW SPEEDO
+                x=x-1
+                TEXT j                
+        ENDFOR
+ENDREPORT
+RETURN

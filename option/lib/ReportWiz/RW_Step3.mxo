@@ -1,0 +1,443 @@
+PROCEDURE RW_Step3
+
+API_START
+WITH library = 'reportwiz'
+
+	userId = 0
+	mxpUserInfo
+	with action = 'getUserId'
+	with userLogin = _username
+	with userId as userId
+	
+	prjrequested = getFormText('prjrequested','')
+	rptname = getFormText('rptname','')
+	progress = getFormText('progress','')
+	fromstep = getFormText('fromstep','')
+	
+	inifile = concat('U',userId,'-',prjrequested,'-',rptname)
+	tempfile = concat(inifile,'-temp')
+	
+.....................
+....... Backup ini file when in edit mode
+.....................
+
+	reportwiz[1] = ''
+	_storage = concat('ReportWiz-U',userId)
+	READ STORAGE
+	checkini=0
+	nrreport = ITEMSINFO('reportwiz','ITEMS')
+	FOR i,1,nrreport,1
+		WHEN UPPERCASE(reportwiz[i]) eq UPPERCASE(inifile)
+			checkini = checkini + 1
+		ENDWHEN
+	ENDFOR
+	
+	WHEN checkini eq 0
+		mode = ''
+	ELSE
+		mode = ' (Edit Mode)'
+	ENDWHEN
+	
+	
+	WHEN fromstep eq '2'
+		dimrowrequested = getFormText('dimrowrequested','')
+		dimcolrequested1 = getFormText('dimcolrequested1','')
+		dimcolrequested2 = getFormText('dimcolrequested2','')
+		_storage = tempfile
+		xx=WRITEINFO('dimrowrequested','dimrowrequested')
+		xx=WRITEINFO('dimcolrequested1','dimcolrequested1')
+		xx=WRITEINFO('dimcolrequested2','dimcolrequested2')
+	ELSE
+		_storage = tempfile
+	ENDWHEN
+	
+	edimrowrequested = getFormText('edimrowrequested','')
+	edimcolrequested1 = getFormText('edimcolrequested1','')
+	edimcolrequested2 = getFormText('edimcolrequested2','')
+	
+	rowmember = ''
+	colmem1 = ''
+	colmem2 = ''
+	nrcheckr = 0
+	nrcheckc1 = 0
+	nrcheckc2 = 0
+	checkr[1] = ''
+	checkc1[1] = ''
+	checkc2[1] = ''
+	
+	READ STORAGE
+	
+	PROJECT prjrequested
+	MODEL modelrequested
+	
+	
+	WHEN rowmember ne ''
+		nrcheckr = SPLIT(',',rowmember)
+		FOR i,1,nrcheckr,1
+			checkr[i] = PARSECSV(rowmember,'TEXT_or_VALUE',i)
+		ENDfor
+	ENDWHEN
+	
+	WHEN colmem1 ne ''
+		nrcheckc1 = SPLIT(',',colmem1)
+		FOR i,1,nrcheckc1,1
+			checkc1[i] = PARSECSV(colmem1,'TEXT_or_VALUE',i)
+		ENDfor
+	ENDWHEN
+	
+	WHEN colmem2 ne ''
+		nrcheckc2 = SPLIT(',',colmem2)
+		FOR i,1,nrcheckc2,1
+			checkc2[i] = PARSECSV(colmem2,'TEXT_or_VALUE',i)
+		ENDfor
+	ENDWHEN
+	
+	
+	USING 'COPYHTML'
+	
+  <tr>
+    <td colspan=4>
+      <p align="center"><strong><font color="#1E64C0" 
+      size=4>Report Specifications
+      #mode
+      </font></strong> </p></td></tr></table>
+      
+	  <table border=0 cellspacing="0" bordercolor="#dadada" align=center><tr>
+          <td align=middle><strong><font color=#1E64C0 size=3>Down 
+            Dimension<hr></font></strong><strong><font color=#1E64C0 size=2>
+            #dimrowrequested
+            members</font></strong>    
+            </td><td> </td>
+          <td align=middle><strong><font color=#1E64C0 size=3>Across 
+            Dimension<hr></font></strong><strong><font color=#1E64C0 size=2>
+            #dimcolrequested1
+            members</font></strong>    
+            </td>
+     
+        ENDUSING
+        
+        
+        WHEN dimcolrequested2 eq 'None'
+        	COPYHTML </tr>
+        ELSE
+        	USING 'COPYHTML'
+        	
+         	 <td> </td><td align=middle><strong><font color=#1E64C0 size=3>Across 
+         	 Dimension 2<hr></font></strong><strong><font color=#1E64C0 size=2> 
+         	 #dimcolrequested2
+         	 members</font></strong>    
+         	 </td></tr>
+         	 ENDUSING
+         ENDWHEN
+         
+        
+        str = ''
+        rmem = ''
+        nrrowmem = GETMEMBERS(dimrowrequested,'rlist','rparent','rlevel')
+       
+        rchild = ''
+        
+        sort index myindex orderby rlevel desc
+        
+        rlastlevel = rlevel[myindex[1]]
+        
+        FOR i,1,nrrowmem,1
+        	FORMAT '<<9' FOR i
+        	DECODE i INTO itxt TYPE TEXT
+        	TRIM itxt
+        	WHEN rparent[i] eq 0
+        		ADDTEXT rchild itxt,','
+        	ENDWHEN
+        ENDFOR
+        
+        rlevelnum = 'rlevel'
+        
+        FOR i,1,rlastlevel,1
+        	FORMAT '<<9' FOR i
+        	DECODE i INTO itxt TYPE TEXT
+        	TRIM itxt
+        	ADDTEXT rlevelnum itxt
+        	##rlevelnum = ''
+        	FOR k,1,nrrowmem,1
+        		FORMAT '<<9' FOR k
+        		DECODE k INTO ktxt TYPE TEXT
+        		TRIM ktxt
+        		WHEN i eq rlevel[k]
+        			ADDTEXT ##rlevelnum ktxt,','
+        		ENDWHEN
+        	ENDFOR
+        	
+        ENDFOR
+        		
+        rlevelnum = 'rlevel'
+	ADDTEXT str '<tr><td align=middle>'
+	ADDTEXT str '<span style="cursor:pointer;color:blue;font-size:10px" onclick="selAllMembers(document.rptspecs.rowmember);">All</span>'
+	COPYHTML #str
+	
+	str = ''
+	WHEN dimrowrequested eq 'Period' OR dimrowrequested eq 'Version'
+		COPYHTML <br>
+	ELSE
+		COPYHTML &nbsp;|
+		FOR i,1,rlastlevel,1
+       		 	FORMAT '<<9' FOR i
+       		 	DECODE i INTO itxt TYPE TEXT
+       		 	TRIM itxt
+       		 	ADDTEXT rlevelnum itxt
+       		 	ADDTEXT str '&nbsp;<span style="cursor:pointer;color:blue;font-size:10px" onclick="selMembers(''',##rlevelnum,''',document.rptspecs.rowmember);">',itxt,'</span>&nbsp;|'
+       		 ENDFOR
+       		 ADDTEXT str '&nbsp;<span style="cursor:pointer;color:blue;font-size:10px" onclick="selMembers(''',rchild,''',document.rptspecs.rowmember);">Child</span><br>'
+	ENDWHEN
+	COPYHTML #str
+	str = ''
+	
+...........
+........... Display Members for the Down dimension in rows of 4
+...........
+
+	ADDTEXT str '<select style="WIDTH: 300px" name="rowmember" multiple size=15>'
+	COPYHTML #str
+	
+        FOR k,1,nrrowmem,1
+        	str = ''
+        	checked = ''
+        	WHEN dimrowrequested eq edimrowrequested AND nrcheckr GT 0 OR fromstep eq '4'
+        		FOR j,1,nrcheckr,1
+        			WHEN rlist[k] eq checkr[j]
+        				checked = 'selected'
+        			ENDWHEN
+        		ENDFOR
+        	ELSE
+        		checked = ''
+        	ENDWHEN
+        			
+        	ADDTEXT str '<option value="',rlist[k],'" ',checked,'>',rlist[k],'</option>'
+        	
+        	COPYHTML #str
+        ENDFOR
+        str = ''
+        ADDTEXT str '</td><td>&nbsp;</td>'
+        
+        ADDTEXT str '<input type="hidden" name="hrowmember">'
+        COPYHTML #str
+.............
+.............
+.............
+        
+        str = ''
+        
+        nrcolmem1 = GETMEMBERS(dimcolrequested1,'c1list','c1parent','c1level')
+       
+        c1child = ''
+        
+        sort index myindex orderby c1level desc
+        
+        c1lastlevel = c1level[myindex[1]]
+        
+        FOR i,1,nrcolmem1,1
+        	FORMAT '<<9' FOR i
+        	DECODE i INTO itxt TYPE TEXT
+        	TRIM itxt
+        	WHEN c1parent[i] eq 0
+        		ADDTEXT c1child itxt,','
+        	ENDWHEN
+        ENDFOR
+        
+       
+        c1levelnum = 'c1level'
+        
+        FOR i,1,c1lastlevel,1
+        	FORMAT '<<9' FOR i
+        	DECODE i INTO itxt TYPE TEXT
+        	TRIM itxt
+        	ADDTEXT c1levelnum itxt
+        	##c1levelnum = ''
+        	FOR k,1,nrcolmem1,1
+        		FORMAT '<<9' FOR k
+        		DECODE k INTO ktxt TYPE TEXT
+        		TRIM ktxt
+        		WHEN i eq c1level[k]
+        			ADDTEXT ##c1levelnum ktxt,','
+        		ENDWHEN
+        	ENDFOR
+        	
+        ENDFOR
+        
+        c1levelnum = 'c1level'
+	ADDTEXT str '<td align=middle>'
+	ADDTEXT str '<span style="cursor:pointer;color:blue;font-size:10px" onclick="selAllMembers(document.rptspecs.colmem1);">All</span>'
+        COPYHTML #str
+        
+        str = ''
+        WHEN dimcolrequested1 eq 'Period' OR dimcolrequested1 eq 'Version'
+        	COPYHTML <br>
+        ELSE
+        	COPYHTML &nbsp;|
+		FOR i,1,c1lastlevel,1
+       	 		FORMAT '<<9' FOR i
+       	 		DECODE i INTO itxt TYPE TEXT
+       	 		TRIM itxt
+       	 		ADDTEXT c1levelnum itxt
+       	 		ADDTEXT str '&nbsp;<span style="cursor:pointer;color:blue;font-size:10px" onclick="selMembers(''',##c1levelnum,''',document.rptspecs.colmem1);">',itxt,'</span>&nbsp;|'
+       	 	ENDFOR
+       	 	ADDTEXT str '&nbsp;<span style="cursor:pointer;color:blue;font-size:10px" onclick="selMembers(''',c1child,''',document.rptspecs.colmem1);">Child</span><br>'
+        ENDWHEN
+        COPYHTML #str
+        str=''
+...........
+........... Display Members for the Across dimension
+...........
+
+	ADDTEXT str '<select style="WIDTH: 300px" name="colmem1" multiple size=15>'
+        FOR k,1,nrcolmem1,1
+        	checked = ''
+        	WHEN dimcolrequested1 eq edimcolrequested1 AND nrcheckc1 GT 0 OR fromstep eq '4'
+        		FOR j,1,nrcheckc1,1
+        			WHEN c1list[k] eq checkc1[j]
+        				checked = 'selected'
+        			ENDWHEN
+        		ENDFOR
+        	ELSE
+        		checked = ''
+        	ENDWHEN
+        			
+        	ADDTEXT str '<option value="',c1list[k],'" ',checked,'>',c1list[k],'</option>'
+        ENDFOR
+        ADDTEXT str '</td>'
+        ADDTEXT str '<input type="hidden" name="hcolmem1" >'
+        COPYHTML #str
+.............
+.............
+.............
+
+        
+...........
+........... Check if 2nd Across dimension was specified
+...........
+        WHEN dimcolrequested2 ne 'None'
+        	str = ''
+        	
+        	nrcolmem2 = GETMEMBERS(dimcolrequested2,'c2list','c2parent','c2level')
+       
+        	c2child = ''
+        
+        	sort index myindex orderby c2level desc
+        
+        	c2lastlevel = c2level[myindex[1]]
+        
+        	FOR i,1,nrcolmem2,1
+        		FORMAT '<<9' FOR i
+        		DECODE i INTO itxt TYPE TEXT
+        		TRIM itxt
+        		WHEN c2parent[i] eq 0
+        			ADDTEXT c2child itxt,','
+        		ENDWHEN
+        	ENDFOR
+        
+       
+        	c2levelnum = 'c2level'
+        
+        	FOR i,1,c2lastlevel,1
+        		FORMAT '<<9' FOR i
+        		DECODE i INTO itxt TYPE TEXT
+        		TRIM itxt
+        		ADDTEXT c2levelnum itxt
+        		##c2levelnum = ''
+        		FOR k,1,nrcolmem2,1
+        			FORMAT '<<9' FOR k
+        			DECODE k INTO ktxt TYPE TEXT
+        			TRIM ktxt
+        			WHEN i eq c2level[k]
+        				ADDTEXT ##c2levelnum ktxt,','
+        			ENDWHEN
+        		ENDFOR
+        	ENDFOR
+        
+        	c2levelnum = 'c2level'
+        	ADDTEXT str '<td>&nbsp;</td><td align=middle>'
+        	ADDTEXT str '<span style="cursor:pointer;color:blue;font-size:10px" onclick="selAllMembers(document.rptspecs.colmem2);">All</span>'
+        	COPYHTML #str
+        
+        	str = ''
+        	WHEN dimcolrequested2 eq 'Period' OR dimcolrequested2 eq 'Version'
+        		COPYHTML <br>
+        	ELSE
+        		COPYHTML &nbsp;|
+			FOR i,1,c2lastlevel,1
+       	 			FORMAT '<<9' FOR i
+       	 			DECODE i INTO itxt TYPE TEXT
+       	 			TRIM itxt
+       	 			ADDTEXT c2levelnum itxt
+       	 			ADDTEXT str '&nbsp;<span style="cursor:pointer;color:blue;font-size:10px" onclick="selMembers(''',##c2levelnum,''',document.rptspecs.colmem2);">',itxt,'</span>&nbsp;|'
+       	 		ENDFOR
+       	 		ADDTEXT str '&nbsp;<span style="cursor:pointer;color:blue;font-size:10px" onclick="selMembers(''',c2child,''',document.rptspecs.colmem2);">Child</span><br>'
+       	 	ENDWHEN
+       	 	COPYHTML #str
+       	 	str=''
+        	
+...........................
+.................. Display Members for the 2nd Across dimension
+...........................
+		ADDTEXT str '<select style="WIDTH: 300px" name="colmem2" multiple size=15>'
+		FOR k,1,nrcolmem2,1
+        		checked = ''
+        		WHEN dimcolrequested2 eq edimcolrequested2 AND nrcheckc2 GT 0 OR fromstep eq '4'
+        			FOR j,1,nrcheckc2,1
+        				WHEN c2list[k] eq checkc2[j]
+        					checked = 'selected'
+        				ENDWHEN
+        			ENDFOR
+        		ELSE
+        			checked = ''
+        		ENDWHEN
+        			
+        		ADDTEXT str '<option value="',c2list[k],'" ',checked,'>',c2list[k],'</option>'
+        	ENDFOR
+        	ADDTEXT str '</td><td> </td>'
+		ADDTEXT str '<input type="hidden" name="hcolmem2">'
+        	COPYHTML #str
+.............
+.............
+.............
+        	
+        ENDWHEN
+        str = ''
+        ADDTEXT str '</tr></table>'
+        ADDTEXT str '<input type="hidden" name="prjrequested" value="',prjrequested,'">'
+        ADDTEXT str '<input type="hidden" name="rptname" value="',rptname,'">'
+        ADDTEXT str '<input type="hidden" name="progress" value=4>'
+        ADDTEXT str '<input type="hidden" name="fromstep" value=3><center>'
+        WHEN dimcolrequested2 ne 'None'
+        	ADDTEXT str '<p><input type="button" value="Back" onclick="goback();" style="WIDTH: 100px"><input type="button" value="Next" onclick="multisel(document.rptspecs.rowmember,document.rptspecs.hrowmember,document.rptspecs.colmem1,document.rptspecs.hcolmem1,document.rptspecs.colmem2,document.rptspecs.hcolmem2);" style="WIDTH: 100px"></form></p>'
+        ELSE
+        	ADDTEXT str '<p><input type="button" value="Back" onclick="goback();" style="WIDTH: 100px"><input type="button" value="Next" onclick="multisel(document.rptspecs.rowmember,document.rptspecs.hrowmember,document.rptspecs.colmem1,document.rptspecs.hcolmem1);" style="WIDTH: 100px"></form></p>'
+        ENDWHEN
+        	
+        COPYHTML #str
+        
+	USING 'COPYHTML'
+	
+	<SCRIPT TYPE="text/javascript">
+	<!--
+	function selMembers(varmem,ele) {
+		splitresult = varmem.split(",");
+		;for(k = 0; k < ele.length; k++){
+			ele[k].selected = false;
+		}
+		;for(i = 0; i < splitresult.length-1; i++){
+			n = parseInt(splitresult[i]);
+			n = n - 1;
+			ele[n].selected = true;
+		}
+	}
+	function selAllMembers(ele) {
+		
+		;for(k = 0; k < ele.length; k++){
+			ele[k].selected = true;
+		}
+	}
+	</script>
+	ENDUSING
+	
+
+RETURN

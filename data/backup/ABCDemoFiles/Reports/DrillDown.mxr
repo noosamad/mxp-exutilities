@@ -1,0 +1,145 @@
+﻿PROCEDURE reportScript
+STARTREPORT
+.API_START
+... start top Node
+default pnode='World'
+... get drillDown variable status (not found, valuelist)
+drillInfo=typeInfo('sstatus')
+drillInfo=lowercase(drillinfo)
+... set report styles
+STYLE REPORT LEFT
+STYLE HEADING BOLD CENTRE
+STYLE DATA RIGHT
+COLUMNWIDTH 120,1
+COLUMNWIDTH 60,2-99
+...  open model Store Analysis with Company down and do droplists
+PROJECT 'ABC Group Demo'
+MODEL 'Profit and Loss'
+NOGRIDLINES
+NOHEADERS
+BOLD
+TEXT 'Profit and Loss by Country'
+NOBOLD
+SKIP 1
+.TEXT 'Store Type'
+.SAMELINE
+.DROPLIST 'Store Type' DEFAULT 'Total' WIDTH 250
+.DIFFERENTLINE
+.TEXT 'Concept'
+.SAMELINE
+.DROPLIST 'Concept' DEFAULT 'Grand Total' WIDTH 250
+.DIFFERENTLINE
+.DROPLIST 'Store Location' CHOICE 'Total' WIDTH 250
+TEXT 'Version'
+SAMELINE
+DROPLIST 'Version' DEFAULT 'Budget' WIDTH 250
+DIFFERENTLINE
+TEXT 'Measure'
+SAMELINE
+DROPLIST 'Measure' DEFAULT 'Total Operating Expense' WIDTH 250
+DIFFERENTLINE
+TEXT 'Currency'
+SAMELINE
+DROPLIST 'Currency' DEFAULT 'USD' WIDTH 250
+DIFFERENTLINE
+.TEXT 'Year'
+.SAMELINE
+.DROPLIST 'MXO' CHOICE 'FY 2009','FY 2010','FY 2011' DEFAULT 'FY 2009' ANSWER 'yrsel' WIDTH 250
+.DIFFERENTLINE
+DOWN 'Countries'
+...
+... delete storage if first time in
+... or read pNode from storage if second time in
+...
+WHEN drillInfo eq 'not found'
+... first time through so need to get child nodes
+        tmpstor='tmpR7766-'
+        ADDTEXT tmpstor _USERID
+        _storage = #tmpstor
+        DELETE STORAGE
+ELSE
+... get the parent node and children from storage
+        tmpstor='tmpR7766-'
+        ADDTEXT tmpstor _USERID
+        _storage = #tmpstor
+        READ STORAGE
+ENDWHEN
+...   get children of current top node
+delete variable childlist
+delete variable chIsParent
+nrc = getChildList('Countries',pnode,'childlist','chIsParent')
+...   if member clicked get children of clicked node
+when drillInfo ne 'not found'
+   when drillInfo eq 'valuelist'
+     nrItems=itemsInfo('sstatus','items')
+     for j,1,nrItems,1
+         when sstatus[j]
+             when chIsParent[j]
+                 pnode=childlist[j]
+                 nrc = getChildList('Countries',pNode,'childlist','chisparent')
+             endwhen
+         endwhen
+     endfor
+...    must be a single value
+   else
+       when sstatus
+          when chIsParent[j]
+              pnode=childlist[j]
+              nrc = getChildList('Countries',pNode,'childlist','chisparent')
+          endwhen
+       endwhen
+   endwhen
+endwhen
+... Output Parent First
+SKIP 1
+STARTCOLUMN 1
+.SWITCH
+.CASE yrsel EQ 'FY 2009'
+        speriod = 1
+        eperiod = 13
+.CASE yrsel EQ 'FY 2010'
+.        speriod = 14
+.        eperiod = 26
+.CASE yrsel EQ 'FY 2011'
+.        speriod = 27
+.        eperiod = 39
+.ENDSWITCH
+COLUMNS speriod-eperiod
+HEADINGS
+SHAPE TEXT #pNode ANSWER 'drillUp'
+SAMELINE
+READ MEMORY pnode INTO 'series'
+FORMAT '>>>,>>>,>>9' FOR series1
+RIGHT
+TEXT #series1
+DIFFERENTLINE
+WHEN nrc GT 0
+        READ MEMORY childlist INTO 'series'
+        FORMAT '<<<9' FOR k
+        i=0
+        FOR k,1,nrc,1
+                rowname='   '
+                ADDTEXT rowname childlist[k]
+                LEFT
+                WHEN chisparent[k] eq 0
+                        TEXT rowname
+                ELSE
+                        SHAPE TEXT rowname ANSWER 'sstatus'
+                        i=i+1
+                        smemList[i]=childlist[k]
+                ENDWHEN
+                RIGHT
+                SAMELINE
+                varSeries='series'
+                ADDTEXT varSeries k
+                TRIM varSeries
+                vardata=##varSeries
+                FORMAT '>>>,>>>,>>9' FOR varData
+                TEXT vardata
+                DIFFERENTLINE
+        ENDFOR
+ENDWHEN
+DELETE STORAGE
+WRITE STORAGE VARIABLES pnode
+ENDREPORT
+RETURN

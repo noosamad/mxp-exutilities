@@ -1,0 +1,413 @@
+PROCEDURE RW_Step5
+
+API_START
+WITH library = 'reportwiz'
+
+
+	userId = 0
+	mxpUserInfo
+	with action = 'getUserId'
+	with userLogin = _username
+	with userId as userId
+	
+	prjrequested = getFormText('prjrequested','')
+	rptname = getFormText('rptname','')
+	progress = getFormText('progress','')
+	fromstep = getFormText('fromstep','')
+	
+	inifile = concat('U',userId,'-',prjrequested,'-',rptname)
+	tempfile = concat(inifile,'-temp')
+	
+.....................
+....... Backup ini file when in edit mode
+.....................
+
+	reportwiz[1] = ''
+	_storage = concat('ReportWiz-U',userId)
+	READ STORAGE
+	checkini=0
+	nrreport = ITEMSINFO('reportwiz','ITEMS')
+	FOR i,1,nrreport,1
+		WHEN UPPERCASE(reportwiz[i]) eq UPPERCASE(inifile)
+			checkini = checkini + 1
+		ENDWHEN
+	ENDFOR
+	
+	WHEN checkini eq 0
+		mode = ''
+	ELSE
+		mode = ' (Edit Mode)'
+	ENDWHEN
+	
+	flist[1] = 'Arial'
+	flist[2] = 'Times New Roman'
+	flist[3] = 'Tahoma'
+	flist[4] = 'Trebuchet MS'
+	flist[5] = 'Verdana'
+	flist[6] = 'Courier New'
+	flist[7] = 'Monotype Corsiva'
+	flist[8] = 'Book Antiqua'
+	flist[9] = 'Century Gothic'
+	flist[10] = 'Lucida Console'
+	nrfont = ITEMSINFO('flist','ITEMS')
+	
+	
+	rptfont = ''
+	rptfontsize = ''
+	titlefontsize = ''
+	variance = ''
+	chartselect = ''
+	chartchild = ''
+	borders = ''
+	colwidth = ''
+	decplace = ''
+	variancemem1 = ''
+	variancemem2 = ''
+	variancecalc = ''
+	
+........................................	
+....................Clear drop,droplist,includedmemlist	
+....................and defaultmemlist array before filling
+....................them with the new values
+........................................	
+	WHEN fromstep eq '4'
+	
+		_storage = tempfile
+		xx=WRITEINFO('progress','progress')
+		READ STORAGE
+		.READ STORAGE INTO varlist
+		.DELETE STORAGE
+		.FOR i,1,ITEMSINFO('varlist','ITEMS'),1
+		.	WHEN varlist[i] ne 'drop' AND varlist[i] ne 'droplist' AND varlist[i] ne 'includedmemlist' AND varlist[i] ne 'defaultmemlist'
+		.		temp = varlist[i]
+		.		WRITE STORAGE VARIABLES ##temp
+		.		COPYHTML #varlist[i]
+		.	ENDWHEN
+		.ENDFOR
+		DELETE VARIABLE drop,droplist,includedmemlist,defaultmemlist
+		
+........
+........ Retrieve results for droplists and default members or filter and filtering member
+........
+		z = 0
+		x = 0
+	
+		FOR i,1,mnrdim,1
+			FORMAT '<<9' FOR i
+			DECODE i INTO itxt TYPE TEXT
+			TRIM itxt
+			ADDTEXT droplistdim[i] 0,'droplistdim',itxt
+			ADDTEXT hdlincludedmem 0,'hdlincludedmem',itxt
+			ADDTEXT dldefaultmem 0,'dldefaultmem',itxt
+			WHEN getFormText(#droplistdim[i],'') ne ''
+				x = x + 1
+				drop[x] = i
+				droplist[x]=getFormText(#droplistdim[i],'')
+				includedmemlist[x] = getFormText(hdlincludedmem,'')
+				defaultmemlist[x] = getFormText(dldefaultmem,'')
+			ENDWHEN
+		ENDFOR
+........
+........
+........
+		xx=WRITEINFO('drop','drop')
+		xx=WRITEINFO('droplist','droplist')
+		xx=WRITEINFO('defaultmemlist','defaultmemlist')
+		xx=WRITEINFO('includedmemlist','includedmemlist')
+		
+
+	ELSE
+		_storage = tempfile
+	ENDWHEN
+	
+	READ STORAGE
+	
+	PROJECT prjrequested
+	MODEL modelrequested
+	USING 'COPYHTML'
+	
+  <tr>
+    <td colspan=4>
+      <p align="center"><font color="#1E64C0" 
+      size=4><strong>Report Specifications
+      #mode
+      </strong></font> </p></td></tr>
+        <tr>
+          <td width="20%" bgcolor="#1E64C0"><font 
+            style="BACKGROUND-COLOR: #1E64C0" color=#ffffff 
+            size=2><strong>Font</strong></font> 
+            </td>
+          <td align="middle"><select style="WIDTH: 210px" size="1" name="rptfont">
+        ENDUSING
+          
+........................................	
+....................Select font type
+........................................
+        str = ''
+        FOR i,1,nrfont,1
+        	WHEN flist[i] eq rptfont or flist[i] eq 'Arial'
+        		selected = 'selected'
+        	ELSE
+        		selected = ''
+        	ENDWHEN
+        	ADDTEXT str '<option value="',flist[i],'" ',selected,'>',flist[i],'</option>'
+        ENDFOR
+        COPYHTML #str
+        
+        USING 'COPYHTML'
+          </select></td>
+          <td width="20%" bgcolor="#1E64C0"><font 
+            style="BACKGROUND-COLOR: #1E64C0" color=#ffffff 
+            size=2><strong>Column 
+            Width</strong></font></td>
+          <td align="middle">
+          <select style="WIDTH: 210px" size="1" name="colwidth">
+        ENDUSING
+ 
+........................................	
+....................Specify Column width
+........................................        
+        str=''
+        FOR i,60,280,20
+		FORMAT '>>9' FOR i
+        	DECODE i INTO itxt TYPE TEXT
+        	TRIM itxt
+        	WHEN itxt eq colwidth OR i eq 100
+        		selected = 'selected'
+        	ELSE
+        		selected = ''
+        	ENDWHEN
+        	ADDTEXT str '<option value=',i,' ',selected,'>',itxt,'</option>'
+        ENDFOR
+        ADDTEXT str '</select></td></tr>'
+        COPYHTML #str
+        
+	USING 'COPYHTML'
+        <tr>
+          <td width="20%" bgcolor="#1E64C0"><font 
+            style="BACKGROUND-COLOR: #1E64C0" color=#ffffff 
+            size=2><strong>Report Font Size</strong></font> 
+            </td>
+          <td align="middle"><select style="WIDTH: 210px" size="1" name="rptfontsize">
+          
+        ENDUSING
+        
+        str=''
+        FOR i,8,20,1
+		FORMAT '>>9' FOR i
+        	DECODE i INTO itxt TYPE TEXT
+        	TRIM itxt
+        	WHEN itxt eq rptfontsize OR i eq 10
+        		selected = 'selected'
+        	ELSE
+        		selected = ''
+        	ENDWHEN
+        	ADDTEXT str '<option value=',i,' ',selected,'>',itxt,'</option>'
+        ENDFOR
+        ADDTEXT str '</select></td>'
+        COPYHTML #str
+        
+	USING 'COPYHTML'
+	
+          <td width="20%" bgcolor="#1E64C0"><font 
+            style="BACKGROUND-COLOR: #1E64C0" color=#ffffff 
+            size=2><strong>Title Font Size</strong></font> 
+            </td>
+          <td align="middle"><select style="WIDTH: 210px" size="1" name="titlefontsize">
+        ENDUSING
+        
+        str=''
+        FOR i,8,24,1
+		FORMAT '>>9' FOR i
+        	DECODE i INTO itxt TYPE TEXT
+        	TRIM itxt
+        	WHEN itxt eq titlefontsize or i eq 12
+        		selected = 'selected'
+        	ELSE
+        		selected = ''
+        	ENDWHEN
+        	ADDTEXT str '<option value=',i,' ',selected,'>',itxt,'</option>'
+        ENDFOR
+        ADDTEXT str '</select></td></tr>'
+        COPYHTML #str
+        
+        
+        str=''
+        
+        ADDTEXT str '<tr><td width="20%" bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Borders</strong></font></td>'
+        WHEN borders eq 'On'
+        	ychecked = 'checked'
+        	nchecked = ''
+        ELSE
+        	nchecked = 'checked'
+        	ychecked = ''
+        ENDWHEN
+        ADDTEXT str '<td align="middle"><input type="radio" name="borders" value="On" ',ychecked,'>On</input><input type="radio" name="borders" value="Off" ',nchecked,'>Off</input></td>'
+        
+        ADDTEXT str '<td width="20%" bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Decimal Place</strong></font></td>'
+        ADDTEXT str '<td align="middle"><select name="decplace" style="WIDTH: 210px" size="1">'
+        FOR i,0,9,1
+		FORMAT '>>9' FOR i
+		DECODE i INTO itxt TYPE TEXT
+		TRIM itxt
+		WHEN itxt eq decplace
+			selected = 'selected'
+		ELSE
+			selected = ''
+		ENDWHEN
+        	ADDTEXT str '<option value=',i,' ',selected,'>',itxt,'</option>'
+        ENDFOR
+        ADDTEXT str '</select></td></tr>'
+............................
+............... Show different options depending on whether 2nd Across dimension has been specified
+............................
+        WHEN dimcolrequested2 eq 'None'
+        	ADDTEXT str '<td width="20%" bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Chart Select</strong></font></td>'
+        	WHEN chartselect eq 'On'
+        		ychecked = 'checked'
+        		nchecked = ''
+        	ELSE
+        		nchecked = 'checked'
+        		ychecked = ''
+        	ENDWHEN
+        	
+        	ADDTEXT str '<td align="middle"><input type="radio" name="chartselect" value="On" ',ychecked,'>On</input><input type="radio" name="chartselect" value="Off" ',nchecked,'>Off</input></td>'
+        	
+        ELSE
+        	nrcolmem2 = SPLIT(',',colmem2)
+............................
+............... Only show variance option if only 2 members are selected for 2nd Across Dimension
+............................
+        	WHEN variance eq 'Off'
+        		disabled = 'disabled'
+        	ELSE
+        		disabled = ''
+        	ENDWHEN
+        	WHEN variance eq 'Off'
+        		nchecked = 'checked'
+        		ychecked = ''
+        	ELSE
+        		ychecked = 'checked'
+        		nchecked = ''
+        	ENDWHEN
+        	
+        		ADDTEXT str '<tr><td width="20%" bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Variance</strong></font></td>'
+        		ADDTEXT str '<td align="middle"><input type="radio" name="variance" value="On" ',ychecked,' onclick="togvariance();">On</input><input type="radio" name="variance" value="Off" ',nchecked,' onclick="togvariance();">Off</input></td>'
+        		
+        		ADDTEXT str '<tr><td colspan=4 bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Variance Settings</strong></font></td></tr>'
+        		ADDTEXT str '<tr><td width="20%" bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Variance Member 1</strong></font></td>'
+        		ADDTEXT str '<td align="middle"><select style="WIDTH: 210px" size="1"  name="variancemem1" ',disabled,'>'
+        		
+        		WHEN colmem2 eq 'All'
+        			nrcolmem2 = GETMEMBERS(dimcolrequested2,'c2list')
+        		ELSE
+				nrcolmem2 = SPLIT(',',colmem2)
+				FOR i,1,nrcolmem2,1
+					c2list[i] = PARSECSV(colmem2,'TEXT_OR_VALUE',i)
+				ENDFOR
+			ENDWHEN
+        		str2 = ''
+        		FOR i,1,nrcolmem2,1
+        			WHEN c2list[i] eq variancemem1                
+        				selected1 = 'selected'
+        			ELSE 
+        				selected1 = ''
+        			ENDWHEN
+        			WHEN c2list[i] eq variancemem2
+        				selected2 = 'selected'
+        			ELSE 
+        				selected2 = ''
+        			ENDWHEN
+        			ADDTEXT str1 '<option value="',c2list[i],'" ',selected1,'>',c2list[i],'</option>'
+        			ADDTEXT str2 '<option value="',c2list[i],'" ',selected2,'>',c2list[i],'</option>'
+        		ENDFOR
+        		ADDTEXT str str1
+        
+        		ADDTEXT str '</select></td>'
+        		ADDTEXT str '<td width="20%" bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Variance Member 2</strong></font></td>'
+        		ADDTEXT str '<td align="middle"><select style="WIDTH: 210px" size="1"  name="variancemem2" ',disabled,'>'
+        		ADDTEXT str str2
+        		ADDTEXT str '</select></td></tr>'
+        		ADDTEXT str '<tr><td width="20%" bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Calculation Type</strong></font></td>'
+        		ADDTEXT str '<td align="middle"><select style="WIDTH: 210px" size="1"  name="variancecalc" ',disabled,'>'
+        		SWITCH
+        		CASE variancecalc eq 'Sum'
+        			ADDTEXT str '<option value="Sum" selected>Sum</option>'
+        			ADDTEXT str '<option value="Difference">Difference</option>'
+        			ADDTEXT str '<option value="Product">Product</option>'
+        			ADDTEXT str '<option value="Ratio">Ratio</option></select></td></tr>'
+        		CASE variancecalc eq 'Difference'
+        			ADDTEXT str '<option value="Sum" selected>Sum</option>'
+        			ADDTEXT str '<option value="Difference" selected>Difference</option>'
+        			ADDTEXT str '<option value="Product">Product</option>'
+        			ADDTEXT str '<option value="Ratio">Ratio</option></select></td></tr>'
+        		CASE variancecalc eq 'Product'
+        			ADDTEXT str '<option value="Sum" selected>Sum</option>'
+        			ADDTEXT str '<option value="Difference">Difference</option>'
+        			ADDTEXT str '<option value="Product" selected>Product</option>'
+        			ADDTEXT str '<option value="Ratio">Ratio</option></select></td></tr>'
+        		CASE variancecalc eq 'Ratio'
+        			ADDTEXT str '<option value="Sum" selected>Sum</option>'
+        			ADDTEXT str '<option value="Difference">Difference</option>'
+        			ADDTEXT str '<option value="Product">Product</option>'
+        			ADDTEXT str '<option value="Ratio" selected>Ratio</option></select></td></tr>'
+        		CASE variancecalc eq ''
+        			ADDTEXT str '<option value="Sum">Sum</option>'
+        			ADDTEXT str '<option value="Difference">Difference</option>'
+        			ADDTEXT str '<option value="Product">Product</option>'
+        			ADDTEXT str '<option value="Ratio">Ratio</option></select></td></tr>'
+        		ENDSWITCH
+        	
+        	
+        	USING 'COPYHTML'
+        	<SCRIPT TYPE="text/javascript">
+        	<!--
+        	function togvariance() {
+        		vtog = document.rptspecs.variance[0].checked
+        		
+        		if(document.rptspecs.variance[1].checked){
+        			document.rptspecs.variancemem1.disabled = true;
+        			document.rptspecs.variancemem2.disabled = true;
+        			document.rptspecs.variancecalc.disabled = true;
+        		}else{
+        			document.rptspecs.variancemem1.disabled = false;
+        			document.rptspecs.variancemem2.disabled = false;
+        			document.rptspecs.variancecalc.disabled = false;
+        		}		
+        	}
+        	function checkvariance() {
+        		vm1 = document.rptspecs.variancemem1.value;
+        		vm2 = document.rptspecs.variancemem2.value;
+        		if(vm1==vm2 && document.rptspecs.variance[1].checked == false){
+        			alert("Variance Member 1 and Variance Member 2 cannot be identical!");
+        			document.rptspecs.variancemem1.focus();
+        		}else{
+        			document.rptspecs.submit();
+        		}
+        	}
+        	</SCRIPT>
+        	ENDUSING
+        
+        ENDWHEN
+        
+        COPYHTML #str
+        
+......................
+......................
+        	
+        ADDTEXT str 0,'</tr></table>'
+
+        ADDTEXT str '<input type="hidden" name="prjrequested" value="',prjrequested,'">'
+        ADDTEXT str '<input type="hidden" name="rptname" value="',rptname,'">'
+        ADDTEXT str '<input type="hidden" name="progress" value=6>'
+        ADDTEXT str '<input type="hidden" name="fromstep" progress" value=5>'
+        ADDTEXT str '<p><input type="button" value="Back" onclick="goback();" style="WIDTH: 100px">'
+        WHEN dimcolrequested2 eq 'None'
+        	ADDTEXT str '<input type="Submit" value="Next" style="WIDTH: 100px"></form></p>'
+        ELSE
+        	ADDTEXT str '<input type="button" value="Next" onclick="checkvariance();" style="WIDTH: 100px"></form></p>'
+        ENDWHEN
+	
+        COPYHTML #str
+        
+RETURN

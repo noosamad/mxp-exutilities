@@ -1,0 +1,10 @@
+﻿Dimension item,User,Access Right,Editable
+Europe,robert,Reviewer,false
+France,cam,Owner,false
+UK,james,Owner,false
+North America,angus,Reviewer,false
+USA,conrad,Owner,false
+Canada,gavin,Owner,false
+Australia,george,Owner,false
+Singapore,jed,Owner,false
+Thailand,sutee,Owner,false

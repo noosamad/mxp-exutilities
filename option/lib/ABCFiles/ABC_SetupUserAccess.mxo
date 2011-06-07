@@ -1,0 +1,73 @@
+Procedure ABC_SETUPUSERACCESS
+.demouserid[1]=restoreuser
+demouserid[1]='tom'
+demouserid[2]='jed'
+demouserid[3]='cam'
+demouserid[4]='james'
+demouserid[5]='gordon'
+demouserid[6]='jack'
+demouserid[7]='lucie'
+demouserid[8]='george'
+demouserid[9]='sutee'
+demouserid[10]='robert'
+demouserid[11]='greg'
+demouserid[12]='conrad'
+demouserid[13]='angus'
+demouserid[14]='gavin'
+demouserid[15]='sam'
+demousername[1]='Tom Jones'
+demousername[2]='Jed I Knight'
+demousername[3]='Cameron DeAzure'
+demousername[4]='James Blond'
+demousername[5]='Gordon Goanna'
+demousername[6]='Jack Lemon'
+demousername[7]='Lucie Liu'
+demousername[8]='George Mikael'
+demousername[9]='Sutee Chimnee'
+demousername[10]='Robert Rankin'
+demousername[11]='Greg Grodin'
+demousername[12]='Conrad Korner'
+demousername[13]='Angus Black'
+demousername[14]='Gavin Stacey'
+demousername[15]='Sam Sonite'
+demosecpass[1]='Planning Administrators'
+demosecpass[2]='Planning Users'
+demosecpass[3]='Planning Users'
+demosecpass[4]='Planning Users'
+demosecpass[5]='Planning Users'
+demosecpass[6]='Planning Users'
+demosecpass[7]='Planning Users'
+demosecpass[8]='Planning Users'
+demosecpass[9]='Planning Users'
+demosecpass[10]='Planning Users'
+demosecpass[11]='Planning Users'
+demosecpass[12]='Planning Users'
+demosecpass[13]='Planning Users'
+demosecpass[14]='Planning Users'
+demosecpass[15]='Planning Administrators'
+for i,1,15,1
+	newUserLogin=demouserid[i]
+	userName=demousername[i]
+	userEmail=demouserid[i]
+	userSecPass=demosecpass[i]
+	WHEN i LE 2
+	   api_SecurityPass
+		  with option='add'
+		  with sourceSecurityPass=usersecpass
+	   COPYHTML 'Adding Security Pass '
+	   .STREAMHTML #userSecPass
+	   .STREAMHTML <BR />
+	ENDWHEN
+	addtext userEmail '@abcgroup.com'
+	api_user
+	  with option = 'add'
+	  with sourceUserLogin = newUserLogin
+	  with userName = userName
+	  with userEmail = userEmail
+	  with userSecurityPass = userSecPass
+	  with userPassword = '0000'
+	  .COPYHTML 'Adding User '
+	  .STREAMHTML #userName
+	  .STREAMHTML <BR />
+endfor
+RETURN

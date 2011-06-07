@@ -1,0 +1,55 @@
+﻿PROCEDURE reportscript
+STARTREPORT
+API_START
+  with noHTML = 1
+.... Suppress the gridlines and column/row labels
+NOGRIDLINES
+NOHEADERS
+.... Specify the project and model
+PROJECT 'ABC Group Demo'
+MODEL 'Profit and Loss'
+.... Set column width for the columns
+COLUMNWIDTH 150,1
+COLUMNWIDTH 70,2-14
+.... Define the Data and Heading styles
+STYLE DATA DECIMALS 0
+STYLE HEADING BOLD CENTRE BGCOLOR 'LIGHTSTEELBLUE' COLOR 'WHITE'
+.... Output the Report Title in bold (and any other formatting you wish)
+BOLD
+TEXT 'Maxiplan Technology - Forecast Profit and Loss By Quarter'
+NOBOLD
+SKIP 1
+.... Set the Across dimension and select the columns to be displayed.
+ACROSS 'PERIOD'
+.... Measure must be down as only Measure dimension has format attributes
+DOWN 'MEASURE'
+.... Provide DROPLIST specs for other dimensions you wish to select from or for which you want to fix the selection
+DROPLIST 'Countries' DEFAULT 'World'
+DROPLIST 'Version'
+DROPLIST 'Currency'
+.... Read the model data for the currently defined slice into memory
+READ MEMORY 'All' INTO 'series', 'seriesDesc' COUNTINTO 'nrcols','nrrows'
+.... Output the Headings
+HEADINGS
+SKIP 1
+.... Specify the format for the loop counter so we can generate a variable name for each series in memory
+FORMAT '<<<9' FOR i
+.... For each measure returned to array 'series' output the columns of data
+FOR i,1,nrRows,1
+       .... create the list variable name
+       varSeries = 'series'
+       ADDTEXT varSeries i
+       TRIM varSeries
+       ....
+       .... Call outputFormatted Measure to output the data
+       ....
+        outputFormattedMeasureData
+                WITH varMeasure = #_modelmeasures[i]
+                WITH varData = ##varSeries
+                WITH startDataCol = 2
+                WITH decplaces = 0
+                WITH datacols = nrcols
+ENDFOR
+.API_END
+ENDREPORT
+RETURN

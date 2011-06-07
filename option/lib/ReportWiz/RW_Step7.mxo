@@ -1,0 +1,948 @@
+PROCEDURE RW_Step7
+
+API_START
+WITH library = 'reportwiz'
+
+	userId = 0
+	mxpUserInfo
+	with action = 'getUserId'
+	with userLogin = _username
+	with userId as userId
+	
+	prjrequested = getFormText('prjrequested','')
+	rptname = getFormText('rptname','')
+	progress = getFormText('progress','')
+	publishtarget = getFormText('publishtarget','')
+	
+	inifile = concat('U',userId,'-',prjrequested,'-',rptname)
+	cini = concat(inifile,'.ini')
+	tempfile = concat(inifile,'-temp')
+	ctemp = concat(tempfile,'.ini')
+	ctempbck = concat(tempfile,'.bck')
+	
+.....................
+....... Backup ini file when in edit mode
+.....................
+
+	reportwiz[1] = ''
+	_storage = concat('ReportWiz-U',userId)
+	READ STORAGE
+	checkini=0
+	nrreport = ITEMSINFO('reportwiz','ITEMS')
+	FOR i,1,nrreport,1
+		WHEN UPPERCASE(reportwiz[i]) eq UPPERCASE(inifile)
+			checkini = checkini + 1
+		ENDWHEN
+	ENDFOR
+	
+	WHEN checkini eq 0
+		mode = ''
+		buttontxt = 'Create Report'
+	ELSE
+		buttontxt = 'Save Changes'
+		mode = ' (Edit Mode)'
+	ENDWHEN
+	
+	_storage = tempfile
+	WHEN publishtarget ne ''
+		xx=WRITEINFO('publishtarget','publishtarget')
+	ENDWHEN
+	READ STORAGE
+	
+	PROJECT #prjrequested
+	MODEL #modelrequested
+	
+	filelocation = _datadir
+	WHEN publishtarget eq 'XMLReporter'
+.//..........................
+.//............. Define temp file location and name
+.//..........................
+		ADDTEXT filelocation '\userdata\reportwiz'
+		directory filelocation
+		ADDTEXT filelocation '\testreport.mxo'
+		delete dos 'testreport.mxo'
+		open dos 'testreport.mxo' WRITE
+	ELSE
+.//..........................
+.//............. Define file location and name
+.//..........................
+		filelocation=concat(filelocation,'\U',userId,'\userlibrary','\',prjrequested,'\')
+		directory filelocation
+		ADDTEXT rptfilename 0,'RW_',rptname,'.mxa'
+		rptfilename = stringreplace(rptfilename,' ','_')
+		delete dos rptfilename
+		open dos rptfilename WRITE
+	ENDWHEN
+	
+...........................
+...........................
+...........................
+	
+...........................
+............. Generic report code for cube models
+...........................
+	ADDTEXT reportcode 0,'PROCEDURE reportScript'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'STARTREPORT'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'API_START'
+	WRITE DOS #reportcode
+	
+	WHEN publishtarget eq 'XMLReporter' 
+		ADDTEXT reportcode 0,'WITH library=''reportwiz'''
+		WRITE DOS #reportcode
+	ENDWHEN
+	ADDTEXT reportcode 0,'_storage = ''',inifile,''''
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'READ STORAGE'
+	WRITE DOS #reportcode
+	
+...........................
+.............. Define Project, Owner, Model, Down and Across
+...........................
+	ADDTEXT reportcode 0,'......................................................'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'.............. Define Project, Owner, Model, Down and Across'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'......................................................'
+	WRITE DOS #reportcode	
+	ADDTEXT reportcode 0,'PROJECT prjrequested OWNER ''',_username,''''
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'MODEL modelrequested'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'DOWN dimrowrequested'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'ACROSS dimcolrequested1'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'WHEN colmem1 eq ''All'''
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'nrcolmem1 = GETMEMBERS(dimcolrequested1,''c1list'')'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'ELSE'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'nrcolmem1 = PARSECSV(colmem1,''TEXT'',0) + 1'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'FOR i,1,nrcolmem1,1'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'c1list[i] = PARSECSV(colmem1,''TEXT'',i)'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'ENDFOR'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'ENDWHEN'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'WHEN dimcolrequested2 eq ''None'''
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'nrcolmem2 = 0'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'ELSE'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'WHEN colmem2 eq ''All'''
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'nrcolmem2 = GETMEMBERS(dimcolrequested2,''c2list'')'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'ELSE'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'nrcolmem2 = PARSECSV(colmem2,''TEXT'',0) + 1'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'FOR i,1,nrcolmem2,1'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'c2list[i] = PARSECSV(colmem2,''TEXT'',i)'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'ENDFOR'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'ENDWHEN'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'ENDWHEN'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'COLUMNS c1list'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'colnr = nrcolmem1*(nrcolmem2 + 2) + 2'
+	WRITE DOS #reportcode
+...........................
+...........................
+...........................
+	
+...........................
+.............. Define included row members
+...........................
+	ADDTEXT reportcode 0,'......................................................'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'.............. Define included row members'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'......................................................'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'WHEN rowmember eq ''All'''
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'nrrows = GETMEMBERS(dimrowrequested,''rlist'')'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'ELSE'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'nrrows = PARSECSV(rowmember,''TEXT'',0) + 1'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'FOR i,1,nrrows,1'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'rlist[i] = PARSECSV(rowmember,''TEXT'',i)'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'ENDFOR'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'ENDWHEN'
+	WRITE DOS #reportcode
+...........................
+...........................
+...........................
+	
+...........................
+............. Define report style
+...........................
+	ADDTEXT reportcode 0,'......................................................'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'.............. Define report style'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'......................................................'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,gridlines
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,headers
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'DECODE rptfontsize INTO rptfontsizeval TYPE VALUE'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'DECODE titlefontsize INTO titlefontsizeval TYPE VALUE'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'STYLE REPORT LEFT FONT rptfont'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'STYLE HEADING BOLD RIGHT BGCOLOR ''SKYBLUE'''
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'STYLE DATA RIGHT FONT rptfont FONTSIZE rptfontsizeval'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'COLUMNWIDTH 150,1'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'DECODE colwidth INTO colwidthval TYPE VALUE'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'COLUMNWIDTH colwidthval,2-colnr'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'DECODE decplace into decplacevar TYPE VALUE'
+	WRITE DOS #reportcode
+			
+	ADDTEXT reportcode 0,'FONTSIZE titlefontsizeval'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'BOLD'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'TEXT rptname'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'NOBOLD'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'SKIP 1'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'FONTSIZE rptfontsizeval'
+	WRITE DOS #reportcode
+...........................
+...........................
+...........................
+	
+
+...........................
+.............. Droplists and filters
+...........................
+	ADDTEXT reportcode 0,'......................................................'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'.............. Output all the droplists'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'......................................................'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'nrsl=0'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'nrdp = ITEMSINFO(''drop'',''ITEMS'')'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'FOR i,1,nrdp,1'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'WHEN droplist[i] eq ''1'''
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'DROPLIST mdimensions[drop[i]] CHOICE defaultmemlist[i]'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'ELSE'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'nrsl = nrsl + 1'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'TEXT mdimensions[drop[i]]'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'nrdlmem = split('','',includedmemlist[i])'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'tempchoice[1] = '''''
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'FOR j,1,nrdlmem,1'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'tempchoice[j] = PARSECSV(includedmemlist[i],''TEXT_OR_VALUE'',j)'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'ENDFOR'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'SAMELINE'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'DROPLIST mdimensions[drop[i]] CHOICE tempchoice WIDTH 250 DEFAULT defaultmemlist[i]'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'DIFFERENTLINE'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'ENDWHEN'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'DELETE VARIABLE tempchoice'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'ENDFOR'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'SKIP 2'
+	WRITE DOS #reportcode
+...........................
+...........................
+...........................
+
+
+
+	WHEN dimcolrequested2 eq 'None'
+	
+...........................
+......... Report code for reports with only 1 Across dimension defined
+...........................
+
+		WHEN chartselect eq 'On'
+			ADDTEXT reportcode 0,'SKIP 2'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'varcs = 2'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'BGCOLOR ''STEELBLUE'''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'TEXT '''''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'SAMELINE'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'FOR j,1,nrcolmem1,1'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'CENTRE'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'jcolstatus = concat(''colstatus'',j)'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'SHAPE TEXT c1list[j] ANSWER jcolstatus DOWNCOLOUR ''WHITE'',''GREEN'' NOSUBMIT'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'ENDFOR'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'LEFT'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'BGCOLOR ''WHITE'''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'DIFFERENTLINE'
+			WRITE DOS #reportcode
+		ELSE
+			ADDTEXT reportcode 0,'varcs = 0'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'HEADINGS'
+			WRITE DOS #reportcode
+		ENDWHEN
+...........................
+...........................
+...........................
+
+
+		ADDTEXT reportcode 0,'......................................................'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'.............. Shapes and Data'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'......................................................'
+		WRITE DOS #reportcode
+		
+		
+...........................
+......... Display data and descriptions
+...........................
+		ADDTEXT reportcode 0,'WHEN nrrows GT 0'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'FORMAT ''<<<9'' FOR k'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'nstatus[1] = '''''
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'x = 0'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'FOR k,1,nrrows,1'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'READ MEMORY rlist[k]'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'rowname='''''
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'ADDTEXT rowname rlist[k]'
+		WRITE DOS #reportcode
+		WHEN chartselect eq 'On'
+			ADDTEXT reportcode 0,'LEFT'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'STARTCOLUMN 1'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'varnodata[k] = GETMEASUREFORMAT(rlist[k],''NODATA'')'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'WHEN varnodata[k] EQ 0'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'x = x + 1'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'nstatus[k] = ''shape'''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'krstatus = concat(''rstatus'',x)'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'SHAPE TEXT rowname ANSWER krstatus DOWNCOLOUR ''WHITE'',''GREEN'' NOSUBMIT'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'ELSE'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'nstatus[k] = ''text'''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'TEXT rowname'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'ENDWHEN'
+			WRITE DOS #reportcode
+			
+			ADDTEXT reportcode 0,'SAMELINE'
+			WRITE DOS #reportcode
+		ENDWHEN	
+		ADDTEXT reportcode 0,'outputFormattedMeasureData'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'WITH varMeasure = rlist[k]'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'WITH varData = series1'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'WITH startMeasureCol = 1'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'WITH startDataCol = 2'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'WITH decplaces = decplacevar'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'DIFFERENTLINE'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'ENDFOR'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'endy = _y'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'ENDWHEN'
+		WRITE DOS #reportcode
+...........................
+...........................
+...........................
+
+		ADDTEXT reportcode 0,'ypos = nrsl + 6 + varcs'
+		WRITE DOS #reportcode
+
+...........................
+.................. Borders when enabled
+...........................		
+		WHEN borders eq 'On'
+			ADDTEXT reportcode 0,'......................................................'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'.............. Draw Borders'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'......................................................'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'xpos = 2'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'endx = nrcolmem1 + xpos - 1'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'endy = endy - 1'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'FRAME STARTCELL xpos,ypos ENDCELL endx,endy POSITION ''ALL'' WIDTH ''THIN'' color ''lightgrey'''
+			WRITE DOS #reportcode
+		ENDWHEN	
+...........................
+.................. chartselect component if on 
+...........................	
+		WHEN chartselect eq 'On'
+			ADDTEXT reportcode 0,'......................................................'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'.............. Chart Select'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'......................................................'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'i = 0'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'g = 0'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'FOR j,1,nrrows,1'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'WHEN nstatus[j] EQ ''shape'' AND g LE x'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'g = g + 1'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'grstatus = concat(''rstatus'',g)'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'WHEN ##grstatus NE 0'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'i = i + 1'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'chartlist[i] = rlist[j]'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'ENDWHEN'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'ENDWHEN'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'ENDFOR'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'selC = 0'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'chartcol[1] = '''''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'FOR j,1,nrcolmem1,1'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'jcolstatus = concat(''colstatus'',j)'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'WHEN ##jcolstatus NE 0'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'selC = selC + 1'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'chartcol[selC] = c1list[j]'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'ENDWHEN'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'ENDFOR'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'LEFT'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'SKIP 1'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'posx = 1'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'posy = endy + 1'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'STARTCELL 1,nrsl+4'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'DIFFERENTLINE'
+			WRITE DOS #reportcode
+			
+			ADDTEXT reportcode 0,'ADDTEXT str 0,''Select '',dimrowrequested,'' and '',dimcolrequested1,'' then Select Chart Type'''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'TEXT str'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'STARTCELL 1,nrsl+5'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'CENTRE'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,' '
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'chartTypeList[1] = ''3D BAR'''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'chartTypeList[2] = ''LINE'''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'chartTypeList[3] = ''BAR'''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'chartTypeList[4] = ''AREA'''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'TEXT ''Chart Type'''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'SAMELINE'
+			WRITE DOS #reportcode
+			
+			ADDTEXT reportcode 0,'mxowidth = colwidthval - 10'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'FORMAT ''<<9'' FOR mxowidth'
+			
+			ADDTEXT reportcode 0,'DROPLIST ''MXO'' CHOICE chartTypeList ANSWER ''CHARTYES'' WIDTH mxowidth'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'BGCOLOR ''LIGHTGREY'''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'SHAPE TEXT ''Refresh'' ANSWER ''REFRESH'''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'BGCOLOR ''WHITE'''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'SKIP 2'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'...  If CHART SHAPE pressed, output the selected rows as a chart'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'STARTCELL posx,posy'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'nci=ITEMSINFO(''chartlist'',''ITEMS'')'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'WHEN nci GT 0 AND selC GT 0'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'COLUMNS chartcol'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'chartwidth = nrcolmem1 + 1'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'CHART WIDTH chartwidth HEIGHT 16'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'charttype = '''''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'SWITCH'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'CASE CHARTYES EQ ''3D BAR'''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'THREEDBAR chartlist'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'CASE CHARTYES EQ ''LINE'''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'LINE chartlist'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'CASE CHARTYES EQ ''BAR'''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'BAR chartlist'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'CASE CHARTYES EQ ''AREA'''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'AREA chartlist'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'ENDSWITCH'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'DRAW CHART'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'ELSE'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'WHEN REFRESH NE 0'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'ADDTEXT msg 0,''Unable to draw chart. '''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'SWITCH'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'CASE nci EQ 0 AND selC EQ 0'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'ADDTEXT msg ''No '',dimrowrequested,'' member and no '',dimcolrequested1,'' member selected.'''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'CASE nci EQ 0'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'ADDTEXT msg ''No '',dimrowrequested,'' member selected.'''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'CASE selC EQ 0'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'ADDTEXT msg ''No '',dimcolrequested1,'' member selected.'''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'ENDSWITCH'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'COLOR ''RED'''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'BOLD'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'TEXT msg'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'COLOR ''BLACK'''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'NOBOLD'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'ENDWHEN'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'ENDWHEN'
+			WRITE DOS #reportcode
+		ENDWHEN
+
+
+	ELSE
+	
+...........................
+......... Report code for reports with 2 across dimensions defined
+...........................
+
+		.xpos = 3
+		.ypos = nrrows + 7
+		
+		ADDTEXT reportcode 0,'COLUMNWIDTH 10,2'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'NODESCRIPTIONS'
+		WRITE DOS #reportcode	
+		
+...........................
+......... Output the down dimension members
+..........................
+		
+		ADDTEXT reportcode 0,'......................................................'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'.............. varx variable to determine whether to include a column for variance'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'......................................................'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'WHEN variance eq ''Off'''
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'varx = 0'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'ELSE'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'varx = 1'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'ENDWHEN'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'xpos = 3'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'ypos = nrsl + 6'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'STARTCELL 1,ypos'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'BGCOLOR ''SKYBLUE'''
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'TEXT '''''
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'BGCOLOR ''WHITE'''
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'DIFFERENTLINE'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'FOR i,1,ITEMSINFO(''rlist'',''ITEMS''),1'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'outputFormattedMeasureData'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'WITH varMeasure = rlist[i]'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'WITH startMeasureCol = 1'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'ENDFOR'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'ry = _y'
+		WRITE DOS #reportcode
+		
+		ADDTEXT reportcode 0,'ypos = ypos - 1'
+		WRITE DOS #reportcode
+		
+		ADDTEXT reportcode 0,'FOR i,1,nrcolmem1,1'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'COLUMNS c1list[i]'
+		WRITE DOS #reportcode
+		
+		WHEN borders eq 'On'
+			ADDTEXT reportcode 0,'......................................................'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'.............. Draw Borders'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'......................................................'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'WHEN i eq 1'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'endy = ry - 1'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'ELSE'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'endy = _y - 1'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'ENDWHEN'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'endx = xpos + nrcolmem2 + varx - 1'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'FRAME STARTCELL xpos,ypos ENDCELL endx,endy POSITION ''AROUND'' WIDTH ''THIN'' color ''lightgrey'''
+			WRITE DOS #reportcode
+		ENDWHEN
+		
+		WHEN variance eq 'On'
+			ADDTEXT reportcode 0,'......................................................'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'.............. Allocate Variance Title'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'......................................................'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'SWITCH'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'CASE variancecalc eq ''Sum'''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'ADDTEXT vtitle 0,variancemem1,'' + '',variancemem2'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'CASE variancecalc eq ''Difference'''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'ADDTEXT vtitle 0,variancemem1,'' - '',variancemem2'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'CASE variancecalc eq ''Product'''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'ADDTEXT vtitle 0,variancemem1,'' x '',variancemem2'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'CASE variancecalc eq ''Ratio'''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'ADDTEXT vtitle 0,variancemem1,'' / '',variancemem2'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'ENDSWITCH'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'c2list[nrcolmem2+varx]=vtitle'
+			WRITE DOS #reportcode
+		ENDWHEN
+		
+		
+		ADDTEXT reportcode 0,'cendx = xpos + nrcolmem2 + varx - 1'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'COMBINE STARTCELL xpos,ypos ENDCELL cendx,ypos'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'STARTCELL xpos,ypos'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'BOLD'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'CENTER'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'TEXT c1list[i]'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'NOBOLD'
+		WRITE DOS #reportcode
+		
+		ADDTEXT reportcode 0,'FOR j,1,nrcolmem2+varx,1'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'STARTCELL xpos,ypos+1'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'WHEN j le nrcolmem2'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'DROPLIST dimcolrequested2 CHOICE c2list[j]'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'ENDWHEN'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'BGCOLOR ''SKYBLUE'''
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'CENTER'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'TEXT c2list[j]'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'LEFT'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'BGCOLOR ''WHITE'''
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'DIFFERENTLINE'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'FOR k,1,nrrows,1'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'READ MEMORY rlist[k]'
+		WRITE DOS #reportcode
+		
+		WHEN variance eq 'On'
+			ADDTEXT reportcode 0,'......................................................'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'.............. Calculate Variance'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'......................................................'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'WHEN c2list[j] eq variancemem1'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'var1[k] = series1[1]'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'ENDWHEN'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'WHEN c2list[j] eq variancemem2'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'var2[k] = series1[1]'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'ENDWHEN'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'WHEN j eq nrcolmem2+1'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'SWITCH'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'CASE variancecalc eq ''Sum'''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'var3[k] = var1[k] + var2[k]'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'CASE variancecalc eq ''Difference'''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'var3[k] = var1[k] - var2[k]'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'CASE variancecalc eq ''Product'''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'var3[k] = var1[k] * var2[k]'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'CASE variancecalc eq ''Ratio'''
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'var3[k] = (var1[k] / var2[k]) * 100'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'FORMAT ''>,>>9.9%'' for var3'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'ENDSWITCH'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'temp[1] = var3[k]'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'outputFormattedMeasureData'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'WITH varMeasure = rlist[k]'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'WITH varData = temp'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'WITH startMeasureCol = 1'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'WITH startDataCol = xpos'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'WITH decplaces = decplacevar'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'ELSE'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'outputFormattedMeasureData'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'WITH varMeasure = rlist[k]'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'WITH varData = series1'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'WITH startMeasureCol = 1'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'WITH startDataCol = xpos'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'WITH decplaces = decplacevar'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'ENDWHEN'
+			WRITE DOS #reportcode
+		ELSE
+		
+			ADDTEXT reportcode 0,'outputFormattedMeasureData'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'WITH varMeasure = rlist[k]'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'WITH varData = series1'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'WITH startMeasureCol = 1'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'WITH startDataCol = xpos'
+			WRITE DOS #reportcode
+			ADDTEXT reportcode 0,'WITH decplaces = 2'
+			WRITE DOS #reportcode
+		ENDWHEN
+		ADDTEXT reportcode 0,'ENDFOR'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'WHEN j eq nrcolmem2+varx'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'xpos = xpos + 2'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'ELSE'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'xpos = xpos + 1'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'ENDWHEN'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'ENDFOR'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'emptycell = xpos - 1'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'COLUMNWIDTH 10,emptycell'
+		WRITE DOS #reportcode
+		ADDTEXT reportcode 0,'ENDFOR'
+		WRITE DOS #reportcode
+		
+		
+	ENDWHEN
+	
+	
+	ADDTEXT reportcode 0,'API_END'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'ENDREPORT'
+	WRITE DOS #reportcode
+	ADDTEXT reportcode 0,'RETURN'
+	WRITE DOS #reportcode
+	close dos write
+	
+	nrerror = ITEMSINFO('_APIERRORMSG','ITEMS')
+	WHEN nrerror GT 0
+		ADDTEXT str 0,'Error occurred. Report, "',rptname,'", has not been created.'
+		COPYHTML #str
+	ELSE
+		ADDTEXT currentDir 0,_datadir,'\userdata\reportwiz'
+		DIRECTORY currentDir
+		delete dos cini
+		COPY FILE ctemp TO cini
+		delete dos ctemp
+		delete dos ctempbck
+		WHEN checkini eq 0
+			reportwiz[nrreport+1] = inifile
+			_storage = concat('ReportWiz-U',userId)
+			xx = WRITEINFO('reportwiz','reportwiz')
+		ENDWHEN
+		str = ''
+		ADDTEXT rpt prjrequested,'_-_',rptname
+		rpt = stringreplace(rpt,' ','_')
+		SWITCH
+		CASE publishtarget eq 'XMLReporter'
+			API_PUBLISH
+				WITH option = 'importscript'
+				WITH sourceFile = filelocation
+				WITH reportName = rpt
+				WITH userLogin = _username
+		CASE publishtarget eq 'xnp'
+			delete dos filelocation
+			inilocation = concat(_datadir,'\U',userId,'\userdata','\',prjrequested,'\',cini)
+			delete dos inilocation
+			COPY FILE cini TO inilocation
+		ENDSWITCH
+		
+		
+		ADDTEXT str 0,'<font color="#1E64C0" size=4>Changes to "',rptname,'" report have been saved.</font>'
+		COPYHTML #str
+	ENDWHEN
+        
+RETURN

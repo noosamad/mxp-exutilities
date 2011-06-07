@@ -1,0 +1,165 @@
+PROCEDURE REPORTSCRIPT
+STARTREPORT
+        ...
+        ... Reading storage files
+        ...
+        savstorefile=_storage
+        _storage='ABC Group Demo\PnL'
+        READ STORAGE
+        _storage=savstorefile
+        ...
+        ... Initialise Project and Model
+        ...
+        PROJECT 'ABC Group Demo' Owner 'Tom'
+        MODEL 'Profit and Loss'
+        ...
+        ... Format report
+        ...
+        NOGRIDLINES
+        NOHEADERS
+        bold
+        rowheight 25,1
+        COLUMNWIDTH 160,1
+        COLUMNWIDTH 75,2-50
+        COLUMNWIDTH 10, 2
+        COLUMNWIDTH 10,6
+        COLUMNWIDTH 10,10
+        COLUMNWIDTH 10,14
+	COLUMNWIDTH 10,18
+	COLUMNWIDTH 10,22
+	COLUMNWIDTH 10,26,30,34,38,42,46
+        NEGCOLOUR 'Red'
+        FONT 'Arial'
+        FONTSIZE 11
+        STYLE HEADING NOBOLD BGCOLOR 'SKYBLUE' CENTRE FONT 'Arial' FONTSIZE 12
+        DECIMALS 0
+        SELECT periodlist1
+        FOR j,1,12,1
+          mth[j]=pname[j]
+        ENDFOR
+        PADL='<-------------'
+        PADR='------------->'
+        PADL=' '
+        PADR=' '
+        varTitle = 'Actual - Budget Comparison Report as at'
+        FORMAT DATE '    dd-MMM-yyyy' for _today
+        ADDTEXT varTitle #_today
+        FONTSIZE 20
+        TEXT varTitle
+        FONTSIZE 12
+        DIFFERENTLINE
+        curmth=DATEINFO(_today,'MONTH') - 1
+        WHEN curmth LT 1
+           curmth = 1
+        ENDWHEN
+        SKIP 1
+        TEXT 'Country'
+        SAMELINE
+        DROPLIST 'Countries' DEFAULT 'World' WIDTH 100
+        DIFFERENTLINE
+        TEXT 'Currency'
+        SAMELINE
+        DROPLIST 'Currency' DEFAULT 'USD' WIDTH 100
+        DIFFERENTLINE
+        SKIP 1
+        ACROSS 'Version' COLUMNS 'Actual','Budget'
+        DOWN 'Measure'
+        NODESCRIPTIONS
+        ...
+        ... Output column headers
+        ...
+        FOR x,1,curmth,1
+                        MNAME=mth[x]
+                        STARTCOLUMN (x-1)*4 +3,6
+                        LEFT
+                        BOLD
+                        TEXT #PADL
+                        SAMELINE
+                        CENTER
+                        TEXT #MNAME
+                        RIGHT
+                        TEXT #PADR
+                        BGCOLOUR 'SKYBLUE'
+                        WHEN x EQ 1
+                           STARTCOLUMN 1,7
+                           TEXT ''
+                           ENDWHEN
+                           STARTCOLUMN (x-1)*4 +3,7
+                        CENTER
+                        NOBOLD
+                        TEXT 'Actual'
+                        SAMELINE
+                        TEXT 'Budget'
+                        TEXT 'Variance'
+                        BGCOLOUR 'WHITE'
+                        DIFFERENTLINE
+        ENDFOR
+                        ITALIC
+        STARTCOLUMN 1
+        LEFT
+        ttlY = 0
+        FOR i,1,ITEMSINFO('MeasureType', 'ITEMS'),1
+            SWITCH
+              CASE MeasureType[i] EQ 'Header'
+                BOLD
+                 TEXT OutputMeasure[i]
+                NOBOLD
+              CASE MeasureType[i] EQ 'Measure'
+                 TEXT OutputMeasure[i]
+                 SAMELINE
+              CASE MeasureType[i] EQ 'Total'
+                 BGCOLOUR 'AliceBlue'
+                 BOLD
+                 TEXT OutputMeasure[i]
+                 SAMELINE
+              CASE MeasureType[i] EQ 'Skip'
+                 SKIP 1
+           ENDSWITCH
+           WHEN MeasureType[i] EQ 'Measure' OR MeasureType[i] EQ 'Total'
+                FOR x,1,curmth,1
+                        when x eq 1
+                                bgcolor 'white'
+                                text ''
+                                        endwhen
+
+                                        WHEN MeasureType[i] EQ 'Total'
+                                                bgcolor 'ALICEBLUE'
+                                                BORDER STARTCELL _y,_x ENDCELL _y,_x+2 POSITION 'TOP' WIDTH 'THIN'
+                                                BORDER STARTCELL _y,_x ENDCELL _y,_x+2 POSITION 'BOTTOM' WIDTH 'THIN'
+                                        ENDWHEN
+                        MNAME=mth[x]
+                        DROPLIST 'PERIOD' CHOICE #MNAME
+                        ROWS ActualMeasure[i]
+                        ...
+                        ...  Now Calc we need to calc the Variances
+                        ...
+                        MEMORY ActualMeasure[i]
+                        variance = series1[1] - series1[2]
+                        WHEN variance LT 0
+                                COLOUR 'RED'
+                                FORMAT '(<,<<<,<<9)' for variance
+                        ELSE
+                                FORMAT '<,<<<,<<9' for variance
+                        ENDWHEN
+                        RIGHT
+                        TEXT variance
+                        LEFT
+                        COLOUR 'BLACK'
+                        .... END CALC VARIANCES
+                        bgcolor 'white'
+                        TEXT ''
+                ENDFOR
+                DIFFERENTLINE
+                NOBOLD
+                BGCOLOUR 'White'
+             ENDWHEN
+             ttlY = _y
+        ENDFOR
+
+        FOR j,1,curmth,1
+                k = (j-1)*4 +3
+		m = k+2
+                BORDER STARTCELL 6,k ENDCELL ttlY,m POSITION 'AROUND' WIDTH 'THIN' color 'lightgrey'
+        ENDFOR
+ENDREPORT
+RETURN

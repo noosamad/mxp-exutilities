@@ -1,0 +1,23 @@
+Country,Employee Name,Job Title,Annual Salary,Month Started,%Bonus Accrual
+Australia,James Packer,General Manager,180000,Jan,0.083333
+Australia,Neil Perry,Sales Director,150000,Jan,0.05
+Australia,Greg Norman,Recreation Manager,160000,Jan,0.05
+Australia,Norman Gunston,PreSales,120000,Jan,0.05
+Australia,Hia Watha,Receptionist,20000,Jan,0.05
+Australia,Harry Hopper,Janitor,20000,Jan,0.05
+Canada,Harry Potter,Manager,100000,Jan,0.05
+Canada,Hermione Plaistow,Receptionist,40000,Jan,0
+Canada,Gordon Ramsay,Communications Mgr,80000,Jan,0
+Canada,Geoff Golding,Manager Engineering,65000,Jan,0
+Thailand,Suthee Chimnee,Finance Manager,1300000,Jan,0.083333
+Thailand,Nadir Nestle,Consultant,1200000,Jan,0.083333
+Singapore,Jed I Knight,Finance Manager,50000,Jan,0.083333
+Singapore,Drew Circles,Sales Technician,40000,Jan,0.083333
+USA,Leslie Down,CEO,200000,Jan,0.05
+USA,Nora Ndom,VP Sales,150000,Jan,0.05
+USA,Pearl Singer,VP Mktg,140000,Jan,0.05
+UK,Ashton Putcher,General Manager,90000,Jan,0.05
+UK,Landy Lawson,Finance Director,80000,Jan,0.05
+France,David Beckham,Midfield Maestro,80000,Jan,0.05
+France,Jack Johnson,Singer,85000,Jan,0.05
+UK,Sam Diamond,Chef,90000,Jan,0.05

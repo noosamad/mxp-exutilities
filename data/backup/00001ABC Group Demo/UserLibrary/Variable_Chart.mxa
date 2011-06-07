@@ -1,0 +1,115 @@
+﻿Procedure reportscript
+STARTREPORT
+DEFAULT rowname='Total Operating Expense'
+.API_START
+... set report styles
+STYLE REPORT LEFT
+STYLE HEADING BOLD RIGHT
+STYLE DATA RIGHT
+COLUMNWIDTH 120,1
+COLUMNWIDTH 75,2-99
+...  open model Store Analysis with Company down and do droplists
+PROJECT 'ABC Group Demo'
+MODEL 'Profit and Loss'
+...     setup the report format stuff
+NOGRIDLINES
+NOHEADERS
+BOLD
+TEXT 'Country Chart Analysis'
+NOBOLD
+SKIP 1
+...     Output all the Droplists and set default choices
+TEXT 'Measure'
+SAMELINE
+DROPLIST 'Measure' DEFAULT rowname ANSWER 'measname' WIDTH 250
+DIFFERENTLINE
+TEXT 'Version'
+SAMELINE
+DROPLIST 'Version' DEFAULT 'Budget' WIDTH 250
+DIFFERENTLINE
+TEXT 'Currency'
+SAMELINE
+DROPLIST 'Currency' DEFAULT 'USD' WIDTH 250
+DIFFERENTLINE
+DOWN 'Countries'
+...     We want to show only the leaf level nodes
+delete variable childlist
+nrc = getLeaves('Countries','childlist')
+SKIP 1
+COLUMNS 1-13
+HEADINGS
+...     Now get the data and loop through and display the data from memory
+...     but outputting description as selectable SHAPE
+...
+WHEN nrc GT 0
+        READ MEMORY childlist INTO 'series'
+        FORMAT '<<<9' FOR k
+        i=0
+        FOR k,1,nrc,1
+                rowname=''
+                ADDTEXT rowname childlist[k]
+                LEFT
+                SHAPE TEXT rowname ANSWER 'sstatus' DOWNCOLOUR 'WHITE','GREEN' NOSUBMIT
+                RIGHT
+                SAMELINE
+                varSeries='series'
+                ADDTEXT varSeries k
+                TRIM varSeries
+                vardata=##varSeries
+                FORMAT '>>>,>>>,>>9' FOR varData
+                TEXT vardata
+                DIFFERENTLINE
+        ENDFOR
+ENDWHEN
+delete variable chartlist
+...     Loop through the SHAPE answers and build list of the selected ones for charting
+i=0
+FOR j,1,nrc,1
+        when sstatus[j] NE 0
+                i=i+1
+                chartlist[i]=childlist[j]
+        endwhen
+ENDFOR
+LEFT
+SKIP 1
+posx=_x
+posy=_y
+STARTCELL 6,3
+SAMELINE
+TEXT 'Select Countries then Select Chart Type'
+STARTCOLUMN _x+2
+CENTRE
+ 
+BGCOLOR 'LIGHTBLUE'
+chartTypeList[1] = '3D BAR'
+chartTypeList[2] = 'LINE'
+chartTypeList[3] = 'BAR'
+chartTypeList[4] = 'AREA'
+SHAPE TEXT chartTypeList DOWNCOLOR 'white', 'darkblue' ANSWER 'CHARTYES' MUTUALLYEXCLUSIVE
+BGCOLOR 'LIGHTGREY'
+SHAPE TEXT 'Refresh' ANSWER 'REFRESH'
+BGCOLOR 'WHITE'
+DIFFERENTLINE
+SKIP 2
+...     If CHART SHAPE pressed, output the selected rows as a chart
+STARTCELL posx,posy+1
+nci=ITEMSINFO('chartlist','ITEMS')
+WHEN nci GT 0
+        COLUMNS 1-12
+        CHART WIDTH 14 HEIGHT 16 TITLE #measname
+        charttype = ''
+        SWITCH
+           CASE CHARTYES[1] NE 0
+                THREEDBAR chartlist
+           CASE CHARTYES[2] NE 0
+                LINE chartlist
+           CASE CHARTYES[3] NE 0
+                BAR chartlist
+           CASE CHARTYES[4] NE 0
+                AREA chartlist
+        ENDSWITCH
+        DRAW CHART
+ENDWHEN
+.API_END
+ENDREPORT
+return

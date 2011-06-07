@@ -1,0 +1,20 @@
+PROCEDURE RW_Step0
+API_START
+WITH library = 'reportwiz'
+
+
+........
+........ Add ExUtilities folder to searchpath
+........
+
+	ADDTEXT sp 0, _homeDir, '\ExUtilities\lib\ReportWiz'
+	searchPath[itemsinfo('searchPath','items')+1] = sp
+
+	mode = getFormText('mode','')
+	WHEN mode eq 'create'
+		RW_CreateMode
+	ELSE
+		RW_EditMode
+	ENDWHEN
+RETURN
+

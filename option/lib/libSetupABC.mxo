@@ -1,0 +1,189 @@
+PROCEDURE libSetupABC
+	READ FORM
+... Define strings, paths etc
+	label= 'Setup ABC'
+	folder='ExUtilities\lib\ABCFiles'
+	libdir=_homedir
+	ADDTEXT libdir '\', _appname, '\loadlib'
+	searchpath[-1]=libdir
+	libdir=_homedir
+	ADDTEXT libdir '\planning\lib'
+	searchpath[-1]=libdir
+	actStr = getformtext('actstr', '')
+	actstr = uppercase(actstr)
+	SWITCH
+	CASE actStr EQ ''
+		res = htmlbegin('ABC Demo Setup')
+		stylestr=''
+		uistyle
+		  with stylestr as stylestr
+		COPYHTML #stylestr
+
+		USING 'COPYHTML'
+			<script type="text/javascript" src="maxiplan/js/jquery.min.js"></script>
+			<script type="text/javascript" src="maxiplan/js/jquery-ui.min.js"></script>
+			<style type="text/css"> .ui-progressbar-value { background-image: url(ExUtilities/images/pbar-ani.gif); }</style>
+			<script type="text/javascript">
+			$(function() {
+				$("#setup").button();
+			});
+
+			function runSetup(){
+				$("#progressintro").hide();
+				$("#setup").toggle(1000);
+				$("#progressbar").hide();
+				$("#progressbar").progressbar({ value: 1});
+				$("#progressbar").toggle(1000);
+				document.forms[0].actStr.value="RUNSETUP";
+				runAjax();
+				setTimeout("runAjaxCS()", 500);
+			}
+			function runAjax(){
+				var f = document.forms[0];
+				dataString = $("form[name=" + f.name + "]").serialize();
+				$.ajax({
+					type: "POST",
+					url:  $("form[name=" + f.name + "]")[0].action,
+					data: dataString,
+					success: function(html){
+					}
+				});
+			}
+			function runAjaxCS(){
+				var f = document.forms[0];
+				document.forms[0].actStr.value="checkStatus";
+				dataString = $("form[name=" + f.name + "]").serialize();
+				$.ajax({
+					type: "POST",
+					url:  $("form[name=" + f.name + "]")[0].action,
+					data: dataString,
+					success: function(html){
+						if (html.indexOf("Finished") == -1){
+							r = html.split('\n');
+							if (r.length > 1){
+								var a = parseFloat(r[1]);
+								if (!isNaN(a)){
+									$("#progressbar").progressbar({
+										value: a
+									});
+									$("#progressText").html("");
+									;for (i=2; i < r.length; i++){
+										$("#progressText").append(r[i]);
+									}
+								}
+							}
+							runAjaxCS();
+						}else{
+							r = html.split('\n');
+							if (r.length > 1){
+								var a = parseFloat(r[1]);
+								$("#progressbar").progressbar({
+									value: 100
+								});
+								$("#progressbar").toggle(2000);
+
+
+								$("#progressText").html("");
+								;for (i=2; i < r.length; i++){
+									$("#progressText").append(r[i]);
+								}
+							}
+						}
+					}
+				});
+			}
+
+			.$(function() {
+			.	$("#progressbar").progressbar({
+			.		value: 59
+			.	});
+			.});
+			</script>
+			</head><body>
+		ENDUSING
+		ADDTEXT selfDir 0, _homedir, '\ExUtilities\lib\', _THISOBJECT
+		selfDir = stringreplace(selfDir, '\', '/')
+		res = htmlpost(selfDir, 0, '_self', 'setupForm')
+		USING 'COPYHTML'
+		<div id="progressintro" >
+		<h2>ABC Demo Group Setup</h2>
+		<p align="left">This process will install and setup the ABC Group Demo on your Maxiplan instance. This process creates the necessary users and security passes, installs the ABC Group Demo project, installs the demonstration reports for the projects, and sets up the deployment for the Expenses and Travel Expenses models. After completion of this installation, you should be able to login as user "Tom" (the default project administrator for the ABC Group Demo) and run the demo.</p>
+		<p align="left">Please note that this process will create the following security passes:</p>
+		<ul>
+		<li>
+		<div align="left">Planning Administrators</div></li>
+		<li>
+		<div align="left">Planning Users</div></li></ul>
+		<p>And will also create the following user logins:</p>
+		<p>Tom,Jed,Cam,James,Gordon,Jack,Lucie,George,Sutee,Robert,Greg,Conrad,Angus,Gavin,Sam</p>
+		<p>The users that feature in the demo are Tom, Sutee, Greg
+		and Jack, however the other users are necessary for the deployment. You will
+		obviously require a Maxiplan instance with at least 15 users available.</p>
+		<p>If you wish to continue with the installation of the demo, please click the button below, and then wait until the installation has completed, which will be signified by the word 'Finished' being displayed.</p>
+		</div>
+		ENDUSING
+		COPYHTML <input name="actStr" type="hidden" value="runSetup">
+		COPYHTML </form>
+		COPYHTML <div id="progressbar" ></div>
+		ADDTEXT line 0, '<input type="button" onclick="runSetup()" id="setup" value="', label, '">'
+		COPYHTML #line
+		COPYHTML <div id="progressText"></div>
+		COPYHTML </body></html>
+	CASE actStr EQ 'RUNSETUP'
+		...Get the task list
+		ADDTEXT _regdir 0, _homedir, '/', folder
+		_application = 'tasklist'
+		READ REGISTER
+		...
+		curPro = 0
+		ADDTEXT pfile 0, _datadir, '/log/', label, '.txt'
+		FORMAT '<<<9' FOR curPro
+		FORMAT '99:99:99' FOR _time
+		writeStack[1] = ''
+		API_START
+		...Add Exutilities library to the searchpath
+		searchPath[-1]= _regdir
+		...Loop through each of the tasks
+		FOR j,1,itemsinfo('taskName', 'items'),1
+			delete dos #pfile
+			open dos pfile write
+			ADDTEXT tmptxt 0, '', curPro
+			TRIM tmptxt
+			writeStack[-1] = tmptxt
+			ADDTEXT writeStack[2] 0, 'Start - ', taskDesc[j],' at ',_time, '<br/>'
+			FOR i,1,itemsinfo('writeStack', 'items'),1
+				write dos #writestack[i]
+			ENDFOR
+			close dos write
+			tname=taskName[j]
+			callTName
+			curPro = curPro + progress[j]
+			delete dos #pfile
+			open dos #pfile write
+			ADDTEXT tmptxt 0, '', curPro
+			TRIM tmptxt
+			writeStack[-1] = tmptxt
+			ADDTEXT writeStack[2] 0, 'End - ', taskDesc[j],' at ',_time, '<br/>'
+			FOR i,1,itemsinfo('writeStack', 'items'),1
+				write dos #writestack[i]
+			ENDFOR
+			close dos write
+		ENDFOR
+		API_END
+		open dos pfile write
+		write dos 'Finished'
+		close dos write
+	CASE actStr EQ 'CHECKSTATUS'
+		ADDTEXT pfile 0, _datadir, '/log/', label, '.txt'
+		open dos #pfile READ
+		WHILE _READEXIST
+			READ DOS line
+			COPYHTML #line
+		ENDWHILE
+		close dos READ
+	ENDSWITCH
+RETURN
+PROCEDURE callTName
+	onerror
+	#tname
+RETURN

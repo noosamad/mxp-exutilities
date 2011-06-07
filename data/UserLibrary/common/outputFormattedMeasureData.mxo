@@ -1,0 +1,139 @@
+PROCEDURE outputFormattedMeasureData
+DEFAULT varMeasure = ''
+DEFAULT varData[1] = 0
+DEFAULT startMeasureCol = 1
+DEFAULT startDataCol = 3
+DEFAULT noacc = 4
+DEFAULT decplaces = 9
+
+STARTREPORT
+
+varHIDE = 0
+varEXCLUDE = 0
+varSKIPBEFORE = 0
+varBOLD = 0
+varITALIC = 0
+varUNDERLINE = 0
+varINDENT = 0
+varNODATA = 0
+varSKIP = 0
+
+
+varHIDE = GETMEASUREFORMAT(varMeasure,'HIDE')
+varEXCLUDE = GETMEASUREFORMAT(varMeasure,'EXCLUDE')
+varSKIPBEFORE = GETMEASUREFORMAT(varMeasure,'SKIPBEFORE')
+varBOLD = GETMEASUREFORMAT(varMeasure,'BOLD')
+varITALIC = GETMEASUREFORMAT(varMeasure,'ITALIC')
+varUNDERLINE = GETMEASUREFORMAT(varMeasure,'UNDERLINE')
+varINDENT = GETMEASUREFORMAT(varMeasure,'INDENT')
+varNODATA = GETMEASUREFORMAT(varMeasure,'NODATA')
+varSKIP = GETMEASUREFORMAT(varMeasure,'SKIP')
+
+varPERCENT = GETMEASUREFORMAT(varMeasure,'PERCENT')
+varDECIMALS = GETMEASUREFORMAT(varMeasure,'decimals')
+varREDNEGATIVE = GETMEASUREFORMAT(varMeasure,'REDNEGATIVE')
+varBRACKETNEGATIVE = GETMEASUREFORMAT(varMeasure,'BRACKETNEGATIVE')
+
+WHEN varHIDE EQ 0 AND varEXCLUDE EQ 0
+	WHEN varSKIPBEFORE GT 0
+		SKIP varSKIPBEFORE
+	ENDWHEN
+
+	WHEN varBOLD EQ 1
+		BOLD
+	ELSE
+		NOBOLD
+	ENDWHEN
+
+	WHEN varITALIC EQ 1
+		ITALIC
+	ELSE
+		NOITALIC
+	ENDWHEN
+
+	WHEN varUNDERLINE EQ 1
+		UNDERLINE
+	ELSE
+		NOUNDERLINE
+	ENDWHEN
+ 
+	indentVarMeasure = ''	
+	WHEN varINDENT GT 0		
+		FOR j, 1, varINDENT, 1
+			ADDTEXT indentVarMeasure ' '
+		ENDFOR
+		ADDTEXT indentVarMeasure varMeasure
+		varMeasure = indentVarMeasure
+	ENDWHEN
+	
+	WHEN varNODATA EQ 1
+		BOLD
+                NOUNDERLINE
+                NOITALIC		
+	ENDWHEN
+	
+
+	STARTCOLUMN startMeasureCol
+        
+	WHEN noacc NE 0
+		DECODE varMeasure INTO acc TYPE VALUE AT 1 TO noacc
+        	WHEN acc GT 0
+        	        DECODE varMeasure INTO varnewmeasure TYPE TEXT AT noacc+2 TO SIZEOF(varMeasure)
+			TEXT varnewmeasure
+                ELSE 
+        		TEXT varmeasure
+                ENDWHEN
+        ELSE
+ 		TEXT varmeasure
+        ENDWHEN
+	
+	SAMELINE
+
+	WHEN varNODATA NE 1
+		STARTCOLUMN startDataCol
+		defformat = '>>>,>>>,>>>,>>9'
+		WHEN decplaces LT 9 AND decplaces GT 0
+			ADDTEXT defformat '.'
+                        FOR j,1,decplaces,1
+				ADDTEXT defformat '9'
+			ENDFOR
+		ELSE
+			WHEN varDECIMALS GT 0 AND decplaces EQ 9
+				ADDTEXT defformat '.'
+				FOR j,1,varDECIMALS,1
+					ADDTEXT defformat '9'
+				ENDFOR
+			ENDWHEN
+		ENDWHEN
+		FORMAT #defformat FOR varData
+		RIGHT
+		WHEN varREDNEGATIVE EQ 0
+			TEXT varData
+		ELSE
+			nrcols = ITEMSINFO('varData','ITEMS')
+			FOR j,1,nrcols,1
+				WHEN varData[j] LT 0
+					COLOR 'RED'
+				ENDWHEN
+				TEXT varData[j]
+				COLOR 'BLACK'
+			ENDFOR
+		ENDWHEN	
+				
+	ENDWHEN
+	LEFT
+
+	DIFFERENTLINE
+
+	WHEN varSKIP GT 0
+		SKIP varSKIP 
+	ENDWHEN
+	NOBOLD
+	NOITALIC
+	NOUNDERLINE
+ENDWHEN
+
+RETURN
+
+	
+

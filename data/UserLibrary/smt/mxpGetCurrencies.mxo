@@ -1,0 +1,50 @@
+PROCEDURE MXPGetCurrencies
+.//
+.//  returns currency dimension into currencyDim and currencyList[]
+.//  currency dimension is '-' if currency not used
+.//
+.//  Usage is :
+.//
+.//  currencyDim='-'
+.//  currencyList[1]='-'
+.//  MXPGetCurrencies
+.//  WITH currencyDim as currencyDim
+.//  With currencyList as currencyList
+.// 
+currencyDim='-'
+currencyList[1]='-'
+.//    currencyDim and model 
+modelCurrencyList[1]='-'
+onerror noerror
+.//
+.//    read the currency dimension from the details file
+.//
+ans=readModelInfo(_cascadeModelId, 'modelCurrencyDim','currencyDim')
+onerror
+.//
+.//  read currency names from details file into modelCurrencyList
+.//  copy to currencyList eliminating duplicates
+.//
+when currencyDim ne '-'
+    onerror noerror
+    ans=readModelInfo(_cascadeModelId, 'modelCurrencyList','modelCurrencyList')
+    onerror
+    when modelCurrencyList[1] ne '-'
+        currencyList[1]=modelCurrencyList[1]
+        m=2
+        for j,2,999,1
+           currencyText=modelCurrencyList[j]
+           when currencyText eq ''
+               j=1000
+           else
+               when inlist(currencyText, 'currencyList') eq 0
+                   currencyList[m]=currencyText
+                   m=m+1
+               endwhen
+           endwhen
+        endfor
+    endwhen                    
+endwhen               
+RETURN
+
+

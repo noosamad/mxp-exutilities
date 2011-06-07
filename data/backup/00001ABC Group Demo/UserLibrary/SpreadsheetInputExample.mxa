@@ -1,0 +1,148 @@
+﻿PROCEDURE reportScript
+STARTREPORT
+columnwidth 150, 1
+columnwidth 80, 2-14
+STYLE HEADING
+    CENTER
+ENDSTYLE
+decimals 2
+PROJECT 'ABC Group Demo' OWNER 'tom'
+MODEL 'Expenses'
+FONTSIZE 18
+BOLD
+TEXT 'ABC Group Expenses'
+FONTSIZE 13
+NOBOLD
+.
+startcell 1,3
+TEXT 'Countries'
+startcell 2,3
+nrleave = getLeaves('Countries', 'leafVar')
+DROPLIST 'MXO' CHOICE #leafVar ANSWER 'abc'
+locate 'countries' select #abc
+startcell 3,3
+TEXT 'Version'
+startcell 4,3
+DROPLIST 'Version'
+FONTSIZE 11
+BGCOLOR 'darkgrey'
+color 'white'
+BOLD
+for j,2,14,1
+    startcell j,5
+    text ' '
+endfor
+BGCOLOR 'white'
+color 'black'
+NOBOLD
+startcell 1,5
+headings
+startcell 1,7
+.
+INPUT 'Salary and Benefits' - 'Training'
+.
+startcell 1,12
+.
+BOLD
+TEXT 'Office Costs'
+.
+SAMELINE
+.
+for j,1,13,1
+    text '0'
+endfor
+NOBOLD
+startcell 2,12
+FORMULA 'SUM(B14:B17)'
+FORMULA 'SUM(C14:C17)'
+FORMULA 'SUM(D14:D17)'
+FORMULA 'SUM(E14:E17)'
+FORMULA 'SUM(F14:F17)'
+FORMULA 'SUM(G14:G17)'
+FORMULA 'SUM(H14:H17)'
+FORMULA 'SUM(I14:I17)'
+FORMULA 'SUM(J14:J17)'
+FORMULA 'SUM(K14:K17)'
+FORMULA 'SUM(L14:L17)'
+FORMULA 'SUM(M14:M17)'
+differentline
+startcell 1,14
+input 'Admin' - 'Other Office Expenses'
+.
+BOLD
+for j,2,14,1
+    startcell j,19
+    text '0'
+endfor
+startcell 1,19
+.
+TEXT 'Operating Expenses'
+NOBOLD
+.
+SAMELINE
+.
+FORMULA 'SUM(B7:B12)'
+FORMULA 'SUM(C7:C12)'
+FORMULA 'SUM(D7:D12)'
+FORMULA 'SUM(E7:E12)'
+FORMULA 'SUM(F7:F12)'
+FORMULA 'SUM(G7:G12)'
+FORMULA 'SUM(H7:H12)'
+FORMULA 'SUM(I7:I12)'
+FORMULA 'SUM(J7:J12)'
+FORMULA 'SUM(K7:K12)'
+FORMULA 'SUM(L7:L12)'
+FORMULA 'SUM(M7:M12)'
+.
+differentline
+.
+startcell 1,21
+.
+Input 'Other Expenses'
+.
+BOLD
+for j,2,14,1
+    startcell j,23
+    text '0'
+endfor
+startcell 1,23
+.
+TEXT 'Total Expenses'
+NOBOLD
+.
+SAMELINE
+.
+FORMULA 'SUM(B19,B21)'
+FORMULA 'SUM(C19,C21)'
+FORMULA 'SUM(D19,D21)'
+FORMULA 'SUM(E19,E21)'
+FORMULA 'SUM(F19,F21)'
+FORMULA 'SUM(G19,G21)'
+FORMULA 'SUM(H19,H21)'
+FORMULA 'SUM(I19,I21)'
+FORMULA 'SUM(J19,J21)'
+FORMULA 'SUM(K19,K21)'
+FORMULA 'SUM(L19,L21)'
+FORMULA 'SUM(M19,M21)'
+.
+skiplist[1] = 11
+skiplist[2] = 13
+skiplist[3] = 18
+skiplist[4] = 20
+skiplist[5] = 22
+FOR j,7,23,1
+    WHEN inlist(j,'skiplist', 1, 'MATCH') LT 1
+        startcell 14,j
+        line = concat('SUM(B', j, ':M', j, ')')
+        FORMULA #line
+    ENDWHEN
+ENDFOR
+FONTSIZE 13
+startcell 6,3
+SHAPE TEXT 'Save' Answer 'sav'
+FRAME STARTCELL 2,7 ENDCELL 14,10 POSITION 'AROUND' COLOUR 'BLACK' WIDTH 'THIN' STYLE 'SOLID'
+FRAME STARTCELL 2,14 ENDCELL 14,17 POSITION 'AROUND' COLOUR 'BLACK' WIDTH 'THIN' STYLE 'SOLID'
+FRAME STARTCELL 2,22 ENDCELL 14,22 POSITION 'BOTTOM' COLOUR 'BLACK' WIDTH 'THIN' STYLE 'SOLID'
+FRAME STARTCELL 2,23 ENDCELL 14,23 POSITION 'BOTTOM' COLOUR 'BLACK' WIDTH 'THIN' STYLE 'DOUBLE'
+ENDREPORT
+RETURN

@@ -1,0 +1,262 @@
+PROCEDURE RW_Step4
+
+API_START
+WITH library = 'reportwiz'
+
+
+	userId = 0
+	mxpUserInfo
+	with action = 'getUserId'
+	with userLogin = _username
+	with userId as userId
+	
+	prjrequested = getFormText('prjrequested','')
+	rptname = getFormText('rptname','')
+	progress = getFormText('progress','')
+	fromstep = getFormText('fromstep','')
+
+	inifile = concat('U',userId,'-',prjrequested,'-',rptname)
+	tempfile = concat(inifile,'-temp')
+	
+.....................
+....... Backup ini file when in edit mode
+.....................
+
+	reportwiz[1] = ''
+	_storage = concat('ReportWiz-U',userId)
+	READ STORAGE
+	checkini=0
+	nrreport = ITEMSINFO('reportwiz','ITEMS')
+	FOR i,1,nrreport,1
+		WHEN UPPERCASE(reportwiz[i]) eq UPPERCASE(inifile)
+			checkini = checkini + 1
+		ENDWHEN
+	ENDFOR
+	
+	WHEN fromstep eq '3'
+		rowmember = getFormText('hrowmember','')
+		colmem1 = getFormText('hcolmem1','')
+		colmem2 = getFormText('hcolmem2','')
+		
+		_storage = tempfile
+		xx=WRITEINFO('progress','progress')
+		xx=WRITEINFO('rowmember','rowmember')
+		xx=WRITEINFO('colmem1','colmem1')
+		xx=WRITEINFO('colmem2','colmem2')
+	ELSE
+		_storage = tempfile
+	ENDWHEN
+	
+	
+	drop[1] = 0
+	droplist[1] = ''
+	defaultmemlist[1] = ''
+	includedmemlist[1] = ''
+	READ STORAGE
+	
+	PROJECT #prjrequested
+	MODEL #modelrequested
+	.//COPYHTML #_MODELEXCHANGERATE
+	USING 'COPYHTML'
+  <tr>
+    <td colspan=4>
+      <p align="center"><font color="#1E64C0" 
+      size=4><strong>Report Specifications
+      #mode
+      </strong></font> </p></td></tr>
+	
+	  <tr>
+          <td align="middle" colspan="4" bgcolor="#1E64C0"><strong><font 
+            style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2>Droplist Dimensions
+            </font></strong>
+            </td></tr>
+          <tr>
+          <td colspan=4><hr></td>
+          </tr>
+	  <tr>
+          <td bgcolor="#1E64C0" width=25%><font 
+            style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Dimensions
+            </strong></font>    
+            </td>
+          <td bgcolor="#1E64C0" width=15%><font 
+            style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Show List
+            </strong></font>    
+            </td>
+          <td bgcolor="#1E64C0" width=30%><font 
+            style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Default Member
+            </strong></font>    
+            </td>
+          <td bgcolor="#1E64C0" width=30%><font 
+            style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Included Members
+            </strong></font>    
+            </td>
+            </tr>
+        ENDUSING
+        str=''
+        arg = ''
+        seldim=0
+        WHEN dimcolrequested2 EQ 'None'
+		seldim = 2
+	ELSE
+		seldim = 3
+	ENDWHEN
+.............
+............. Display Dimensions and options, tag those which are selected for Across and Down
+.............
+        FOR k,1,mnrdim,1
+        
+        	ADDTEXT str '<tr>'
+        	FORMAT '>>9' FOR k
+        	DECODE k INTO ktxt TYPE TEXT
+        	TRIM ktxt
+        	
+        	ADDTEXT dimk 0,'droplistdim',ktxt
+        	ADDTEXT dldefaultmem 0,'dldefaultmem',ktxt
+        	ADDTEXT dlincludedmem 0,'dlincludedmem',ktxt
+        	dimtxt = ''
+        	colorbg = '#1E64C0'
+        	
+        	WHEN dimrowrequested eq mdimensions[k] OR dimcolrequested1 eq mdimensions[k] OR dimcolrequested2 eq mdimensions[k]
+        		colorbg = '#D3D3D3'
+        		SWITCH
+        		CASE dimrowrequested eq mdimensions[k]
+        			dimtxt = ' <b>(Down Dimension)</b>'
+        		CASE dimcolrequested1 eq mdimensions[k]
+        			dimtxt = ' <b>(Across Dimension 1)</b>'
+        		CASE dimcolrequested2 eq mdimensions[k]
+        			dimtxt = ' <b>(Across Dimension 2)</b>'
+        		ENDSWITCH
+        	ENDWHEN
+        	ADDTEXT str '<td bgcolor="',colorbg,'"><font style="BACKGROUND-COLOR: ',colorbg,'" color=#ffffff size=2><strong>',mdimensions[k],dimtxt,'</strong></font></td>'
+        	WHEN dimrowrequested eq mdimensions[k] OR dimcolrequested1 eq mdimensions[k] OR dimcolrequested2 eq mdimensions[k]
+        		ADDTEXT str '<td align="middle" bgcolor="#D3D3D3"><font style="BACKGROUND-COLOR: ',colorbg,'" color=#ffffff>N.A.</td></font>'
+        		ADDTEXT str '<td align="middle" bgcolor="#D3D3D3"><font style="BACKGROUND-COLOR: ',colorbg,'" color=#ffffff>N.A.</td></font>'
+        		ADDTEXT str '<td align="middle" bgcolor="#D3D3D3"><font style="BACKGROUND-COLOR: ',colorbg,'" color=#ffffff>N.A.</td></font>'
+        	ELSE
+        		nrdlmem = GETMEMBERS(mdimensions[k],'templist')
+        	
+......................................................................
+..................... Generate a list of currencies available for the model
+......................................................................
+        		WHEN mdimensions[k] eq 'Currency'
+        			
+        			currencyDim='-'
+        			currencyList[1]='-'
+        			MXPGetCurrencies
+        			WITH currencyList as currencyList
+        			
+        			templist = currencyList
+        			nrdlmem = ITEMSINFO('templist','ITEMS')
+        			templist[-1]='{Local Currency}'
+        			nrdlmem = nrdlmem + 1
+        		ENDWHEN
+			WHEN mnrdim GT seldim
+				nrdp = ITEMSINFO('drop','ITEMS')
+				dml=0
+				FOR i,1,nrdp,1
+					ychecked = 'checked'
+					nchecked = ''
+					WHEN k eq drop[i]
+						WHEN droplist[i] eq '0'
+							ychecked = 'checked'
+						ELSE
+							
+							nchecked = 'checked'
+							ychecked = ''
+						ENDWHEN
+						dml = i
+					ENDWHEN
+					WHEN nrdlmem EQ 1
+						nchecked = 'checked'
+						ychecked = ''
+					ENDWHEN
+					
+				ENDFOR
+				
+				ADDTEXT str '<td align="middle"><input type="radio" name="',dimk,'" value=0 ',ychecked,' onclick="highlightmem(document.rptspecs.',dldefaultmem,',document.rptspecs.',dlincludedmem,')">Yes <input type="radio" name="',dimk,'" value=1 ',nchecked,'>No</td>'
+				ADDTEXT str '<td align="middle"><select style="WIDTH: 210px" name="',dldefaultmem,'">'
+				COPYHTML #str
+				
+				FOR j,1,nrdlmem,1
+					str = ''
+					WHEN templist[j] eq defaultmemlist[dml]
+						selected = 'selected'
+					ELSE
+						selected = ''
+					ENDWHEN
+					ADDTEXT str '<option value="',templist[j],'" ',selected,'>',templist[j],'</option>'
+					COPYHTML #str
+				ENDFOR
+				str = ''
+				ADDTEXT str '</select></td>'
+				ADDTEXT str '<td align="middle"><select style="WIDTH: 210px" name="',dlincludedmem,'" multiple size=6>'
+				COPYHTML #str
+				
+				nrincludedmem = SPLIT(',',includedmemlist[dml])
+				
+				FOR j,1,nrdlmem,1
+					str = ''
+					selected = ''
+					FOR m,1,nrincludedmem,1
+						WHEN templist[j] eq PARSECSV(includedmemlist[dml],'TEXT_OR_VALUE',m)
+							selected = 'selected'
+						ENDWHEN
+					ENDFOR
+					WHEN nrincludedmem eq 0
+						selected = 'selected'
+					ENDWHEN
+					ADDTEXT str '<option value="',templist[j],'" ',selected,'>',templist[j],'</option>'
+					COPYHTML #str
+				ENDFOR
+				str = ''
+				ADDTEXT str '</select><input type=hidden name="h',dlincludedmem,'"></td>'
+				
+	......................................................................
+	..................... Generate the arguments for javascript function
+	......................................................................
+	
+				ADDTEXT arg 'document.rptspecs.',dlincludedmem,',document.rptspecs.h',dlincludedmem
+				WHEN k le mnrdim
+					ADDTEXT arg ','
+				ENDWHEN
+        		ENDWHEN
+        	ENDWHEN
+        
+        	
+        ADDTEXT str '</tr>'
+        DELETE VARIABLE templist
+        ENDFOR
+        
+......................................................................
+..................... Remove comma at the last argument
+......................................................................
+        strfunc = ''
+        WHEN mnrdim GT seldim
+		sizeofarg = sizeof(arg)
+		args = substr(arg,sizeofarg,sizeofarg)
+		WHEN args eq ','
+			args = substr(arg,1,sizeofarg-1)
+		ELSE
+			args = arg
+		ENDWHEN
+		ADDTEXT strfunc 'multisel(',args,');'
+	ELSE
+		ADDTEXT strfunc 'submit();'
+		ADDTEXT str '<tr><td colspan=4><b>No dimension available for droplist selection.</b></td</tr>'
+        ENDWHEN
+.............
+.............
+.............
+
+        ADDTEXT str '</table>'
+        COPYHTML #str
+        str=''
+        ADDTEXT str '<input type="hidden" name="prjrequested" value="',prjrequested,'">'
+        ADDTEXT str '<input type="hidden" name="rptname" value="',rptname,'">'
+        ADDTEXT str '<input type="hidden" name="progress" value=5>'
+        ADDTEXT str '<input type="hidden" name="fromstep" value=4>'
+        ADDTEXT str '<p><input type="button" value="Back" onclick="goback();" style="WIDTH: 100px"><input type="button" value="Next" style="WIDTH: 100px" onclick="',strfunc,'"></form></p>'
+        
+        COPYHTML #str
+        
+RETURN

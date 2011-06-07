@@ -1,0 +1,7 @@
+PROCEDURE ABCSetupDemo
+	READ FORM
+	ADDTEXT libdir 0, _homedir, '/ExUtilities/lib'
+	searchPath[-1] = libdir
+
+	libSetupABC
+RETURN

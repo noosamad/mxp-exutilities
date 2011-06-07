@@ -1,0 +1,298 @@
+PROCEDURE ReportGen
+	API_START
+	WITH library = 'reportwiz'
+	
+	prjrequested = getFormText('prjrequested','')
+	modelrequested = getFormText('modelrequested','')
+	progress = getFormText('progress','')
+	
+
+
+........
+........ Add ExUtilities folder to searchpath
+........
+
+	ADDTEXT sp 0, _homeDir, '\ExUtilities\lib\ReportWiz'
+	searchPath[itemsinfo('searchPath','items')+1] = sp
+
+
+
+........
+........ Get list of projects which is owned by the user
+........
+	plist[1]=''
+	
+	API_PROJECT
+	WITH option = 'list'
+	WITH projectlist AS plist
+	
+	nrprj=ITEMSINFO('plist','ITEMS')
+........
+........
+........
+
+
+	PROJECT ''
+	
+	str = ''
+	
+........
+........ Output html header, define javascript functions and output table headers
+........
+
+USING 'COPYHTML'
+
+<title>Maxiplan XMLReport Wizard</title>
+<style>
+h1 { font-family: Arial, sans-serif; font-size: 30px; }
+h2 { font-family: Arial, sans-serif; font-size: 18px; }
+
+body,p,b,i,em,dt,dd,dl,sl,caption,th,td,tr,u,blink,select,option,form,div,li { font-family: Arial, sans-serif; font-size: 12px; }
+
+</style>
+
+	<SCRIPT TYPE="text/javascript">
+	<!--
+	function checkrptname() {
+		if (document.rptspecs.prjrequested.value == " " && document.rptspecs.rptname.value.length == 0) {
+			alert("Please select a Project and provide a report name");
+			document.rptspecs.prjrequested.focus();
+		}else if(document.rptspecs.prjrequested.value == " "){
+			alert("Please select a Project");
+			document.rptspecs.rptname.focus();
+		}else if(document.rptspecs.rptname.value.length == 0){
+			alert("Please provide a report name");
+			document.rptspecs.rptname.focus();
+		}else{
+			document.rptspecs.submit();
+		}
+	}
+	function checkdim() {
+		submitok = 1;
+		if (document.rptspecs.dimrowrequested.value == document.rptspecs.dimcolrequested1.value) {
+			alert("DOWN and ACROSS cannot be identical!\nPlease change accordingly.");
+			submitok = 0;
+		}
+		if (document.rptspecs.dimrowrequested.value == document.rptspecs.dimcolrequested2.value) {
+			alert("DOWN and ACROSS cannot be identical!\nPlease change accordingly.");
+			submitok = 0;
+		}
+		if (document.rptspecs.dimcolrequested1.value == document.rptspecs.dimcolrequested2.value) {
+			alert("ACROSS dimension 1 and ACROSS dimension 2 cannot be identical!\nPlease change accordingly.");
+			submitok = 0;
+		}
+		if (submitok == 1) {
+			document.rptspecs.progress.value = 3;
+			document.rptspecs.submit();
+		}
+	}
+	function goback() {
+		varprogress = document.rptspecs.progress.value;
+		document.rptspecs.progress.value = varprogress - 2;
+		document.rptspecs.submit();
+	}
+	function multisel(selArgs) {
+	
+		var a = 0;
+		var x=0;
+		ok = true;
+		
+		;for (a; a < arguments.length; a=a+2) //loop through text elements
+		{
+			selectfield = arguments[a];
+			hiddenfield = arguments[a+1];
+			
+			len = selectfield.length;
+			k = 0;
+			hvar = new Array();
+			hvarlen = new Array();
+			;for(i=0;i<len;i++){
+				if(selectfield[i].selected){
+					hvar[k] = "\"" + selectfield[i].value + "\"";
+					k++;
+					
+				}
+				if(selectfield[i].checked){
+					hvar[k] = "\"" + selectfield[i].value + "\"";
+					k++;
+				}
+			}
+			hvarlen[x] = hvar.length;
+			if(hvarlen[x]<1){
+				a = arguments.length;
+				ok = false;
+			}
+			hiddenfield.value = hvar;
+			x++;
+		}
+		
+		if(ok){
+			
+			document.rptspecs.submit();
+		}else{
+			alert('Please ensure at least 1 member is selected for each dimension.');
+		}
+	}
+	function checktog(ele) {
+		len = ele.length
+		k=len-1	
+		if(ele[k].checked){
+			;for(i=0;i<k;i++){
+			ele[i].checked = false
+			ele[i].disabled = true
+			}
+		}else{
+			;for(i=0;i<k;i++){
+			ele[i].disabled = false
+			}
+		}
+	}
+	function skipto(progress) {
+		document.rptspecs.progress.value=progress;
+		document.rptspecs.submit();
+	}
+	function highlightmem(first,second){
+		len = second.length;
+		;for(x=0;x<len;x++){
+			if(second[x].value == first.value){
+				second[x].selected = true;
+			}
+		}
+	}
+		
+	//-->
+	</SCRIPT>
+	
+ENDUSING
+
+line=concat(#_homedir,'/maxiplandata/All Documents/Xutilities/Utilities/reportgen')
+STARTFORM NAME 'rptspecs' to #line
+
+
+USING 'COPYHTML'
+
+
+<body bgcolor="#ffffff">
+<p>
+
+<table border="0" cellspacing="0" cellpadding="1" width=90% align="center">
+  <tbody>
+  
+  <tr>
+              <td bgcolor="#1E64C0" valign="bottom"><center>
+      <b><font color="#ffffff" size=6>Report Wizard</font></b></center></td></tr>
+  <tr>
+    <td></ td>
+                  <table border="1" cellspacing="0" bordercolor="#dadada" cellpadding="3" 
+      width="100%" align=center>
+
+ENDUSING
+
+........
+........
+........
+
+
+SWITCH
+
+........
+........ Name Report and Select Project
+........
+CASE progress eq ''
+
+	RW_ModeSelect
+
+........
+........ Create Mode
+........
+CASE progress eq 'create'
+
+	RW_CreateMode
+
+........
+........ Edit Mode
+........
+CASE progress eq 'edit'
+
+	RW_EditMode
+
+........
+........ Delete Mode
+........
+CASE progress eq 'delete'
+
+	RW_DeleteMode
+
+........
+........ Checks project and reportname
+........
+CASE progress eq 'checkprjrpt'
+
+	RW_CheckPrjRpt
+
+........
+........ Select Model, provide report name, gridlines and headers toggle
+........
+CASE progress eq '1'
+
+	RW_Step1
+	
+........
+........
+........
+
+
+........
+........ Select Down and Across dimensions
+........
+CASE progress eq '2'
+
+	RW_Step2
+
+........
+........
+........
+
+
+........
+........ Select members for the across and down dimensions
+........
+CASE progress eq '3'
+
+	RW_Step3
+
+
+.............
+............. Select Droplists and the corresponding default members, toggle to make droplist a filter
+.............
+CASE progress eq '4'
+
+	RW_Step4
+
+.............
+............. Select font, fontsize, columnwidth and toggles for optional components like show borders,chart select and variance analysis
+.............
+CASE progress eq '5'
+
+	RW_Step5
+
+
+......................
+............. Show all report specifications in a table
+......................
+CASE progress eq '6'
+
+	RW_Step6
+
+...........................
+................ Generate report code into a temp file and publish report
+...........................
+CASE progress eq '7'
+
+	RW_Step7
+
+ENDSWITCH	
+ENDFORM
+API_END
+Return
+

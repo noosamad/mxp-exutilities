@@ -1,0 +1,35 @@
+PROCEDURE ABC_SetupReports
+
+	uname='Tom'
+dirpath = _datadir
+ADDTEXT dirpath '\backup\ABCDemoFiles\Reports'
+directory #dirpath
+dosdir '*.mxr'
+nritems=itemsinfo('_dosfile','items')
+flist=_dosfile
+WHEN nritems GT 0
+... loop through the list of files and publish them with changed name as necessary
+FOR j,1,nritems,1
+   fname=dirpath
+   rep=flist[j]
+   addtext fname '\'
+   addtext fname rep
+   flen=sizeof(rep)
+   namelen=flen-4
+   repname=SUBSTR(rep,1,namelen)
+   prepname = ''
+   ADDTEXT prepname repname
+   api_publish
+	with option = 'importscript'
+	with sourceFile = fname
+	with reportName = prepname
+	with userLogin = uname
+	with publishProject = 'ABC Group Demo'
+   mesg='Report "'
+   ADDTEXT mesg prepname,'" added from file "',rep,'" for user ',uname
+   COPYHTML #mesg
+   COPYHTML </br>
+ENDFOR
+ENDWHEN
+
+RETURN

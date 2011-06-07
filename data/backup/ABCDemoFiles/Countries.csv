@@ -1,0 +1,11 @@
+﻿Countries,World,{root},USD
+Countries,"North America",World,USD
+Countries,USA,"North America",USD
+Countries,Canada,"North America",CAD
+Countries,"Asia Pacific",World,USD
+Countries,Singapore,"Asia Pacific",SGD
+Countries,Thailand,"Asia Pacific",THB
+Countries,Australia,"Asia Pacific",AUD
+Countries,Europe,World,EUR
+Countries,UK,Europe,GBP
+Countries,France,Europe,EUR

@@ -1,0 +1,371 @@
+PROCEDURE RW_Step6
+
+API_START
+WITH library = 'reportwiz'
+
+	userId = 0
+	mxpUserInfo
+	with action = 'getUserId'
+	with userLogin = _username
+	with userId as userId
+	
+	prjrequested = getFormText('prjrequested','')
+	rptname = getFormText('rptname','')
+	progress = getFormText('progress','')
+	fromstep = getFormText('fromstep','')
+	rptfont = getFormText('rptfont','')
+	rptfontsize = getFormText('rptfontsize','')
+	titlefontsize = getFormText('titlefontsize','')
+	variance = getFormText('variance','')
+	variancemem1 = getFormText('variancemem1','')
+	variancemem2 = getFormText('variancemem2','')
+	variancecalc = getFormText('variancecalc','')
+	decplace = getFormText('decplace','')
+	chartselect = getFormText('chartselect','')
+	chartchild = getFormText('chartchild','')
+	borders = getFormText('borders','')
+	colwidth = getFormText('colwidth','')
+	publishtarget = ''
+	
+	inifile = concat('U',userId,'-',prjrequested,'-',rptname)
+	tempfile = concat(inifile,'-temp')
+	
+.....................
+....... Backup ini file when in edit mode
+.....................
+
+	reportwiz[1] = ''
+	_storage = concat('ReportWiz-U',userId)
+	READ STORAGE
+	checkini=0
+	nrreport = ITEMSINFO('reportwiz','ITEMS')
+	FOR i,1,nrreport,1
+		WHEN UPPERCASE(reportwiz[i]) eq UPPERCASE(inifile)
+			checkini = checkini + 1
+		ENDWHEN
+	ENDFOR
+	
+	WHEN checkini eq 0
+		mode = ''
+		buttontxt = 'Create Report'
+	ELSE
+		buttontxt = 'Save Changes'
+		mode = ' (Edit Mode)'
+	ENDWHEN
+	
+	WHEN fromstep eq '5'
+	
+		_storage = tempfile
+		xx=WRITEINFO('progress','progress')
+		xx=WRITEINFO('rptfont','rptfont')
+		xx=WRITEINFO('rptfontsize','rptfontsize')
+		xx=WRITEINFO('titlefontsize','titlefontsize')
+		xx=WRITEINFO('variance','variance')
+		xx=WRITEINFO('variancemem1','variancemem1')
+		xx=WRITEINFO('variancemem2','variancemem2')
+		xx=WRITEINFO('variancecalc','variancecalc')
+		xx=WRITEINFO('decplace','decplace')
+		xx=WRITEINFO('chartselect','chartselect')
+		xx=WRITEINFO('chartchild','chartchild')
+		xx=WRITEINFO('borders','borders')
+		xx=WRITEINFO('colwidth','colwidth')
+
+	ELSE
+		_storage = tempfile
+	ENDWHEN
+	
+	READ STORAGE
+        str=''
+	WHEN mode eq ''
+        	ADDTEXT str '<tr><td colspan=4><p align="center"><strong><font color="#1E64C0" size=4>Add Report to:</font></strong></p></td></tr>'
+        
+............................................................................................
+............................................................................................
+.......................Option to publish to XMLReporter only or to Project and XMLReporter
+............................................................................................
+............................................................................................
+		WHEN publishtarget eq 'xnp'
+			xmlrepsel = ''
+			xnpsel = 'selected'
+		ELSE
+			xmlrepsel = 'selected'
+			xnpsel = ''
+		ENDWHEN
+	
+		ADDTEXT str '<body onload="document.rptspecs.publishtarget.focus();"><tr><td><b><font color=red>*</font></b>Publish To</td>'
+		ADDTEXT str '<td colspan=3 align=middle><select name="publishtarget" style="WIDTH: 400px">'
+		ADDTEXT str '<option value="XMLReporter" ',xmlrepsel,'>XMLReporter</option>'
+		ADDTEXT str '<option value="xnp" ,'xnpsel'>Project</option>'
+		ADDTEXT str '</select></td></tr>'
+	ENDWHEN
+        
+        ADDTEXT str '<input type="hidden" name="progress" value=7>'
+        ADDTEXT str '<input type="hidden" name="prjrequested" value="',prjrequested,'">'
+        ADDTEXT str '<input type="hidden" name="rptname" value="',rptname,'">'
+        ADDTEXT str '<tr><td colspan=4><input type="Submit" value="',buttontxt,'" style="WIDTH: 100px"><input type="button" value="Back" onclick="goback();" style="WIDTH: 100px"></form></td></tr>'
+        COPYHTML #str
+        
+        x = ITEMSINFO('drop','ITEMS')
+        
+		USING 'COPYHTML'
+		<tr>
+    <td colspan=4>
+		<p align="center"><strong><font color="#1E64C0" 
+		size=4>Review Report Specifications
+		#mode
+		</font></strong></p></td></tr>
+		
+		<tr>
+		 <td width="20%" bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Project</strong></font></td>
+		 <td width="30%" align="middle">
+		 #prjrequested
+		 </td>
+		 <td width="20%" bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Model</strong></font></td>
+		 <td width="30%" align="middle">
+		 #modelrequested
+		 </td></tr>
+		<tr><td colspan=4><hr></td></tr>
+		<tr>
+		<td colspan=4 bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Down Dimension :
+		#dimrowrequested
+		</strong></font></td></tr>
+		ENDUSING
+		
+		PROJECT #prjrequested
+		MODEL #modelrequested
+
+		nrrowmem = SPLIT(',',rowmember)
+		nrcolmem1 = SPLIT(',',colmem1)
+		nrcolmem2 = SPLIT(',',colmem2)
+		
+		str=''
+		
+......................
+................ Display Down dimension members
+......................
+		WHEN rowmember eq 'All'
+			FOR i,1,GETMEMBERS(dimrowrequested,'rlist'),4
+				ADDTEXT str '<tr>'
+				FOR k,i,i+3,1
+					ADDTEXT str '<td align="middle">',rlist[k],'</td>'
+				ENDFOR
+				ADDTEXT str '</tr>'
+			ENDFOR
+		ELSE
+			FOR i,1,nrrowmem,4
+				ADDTEXT '<tr>'
+				FOR k,i,i+3,1
+					temp = PARSECSV(rowmember,'TEXT_or_VALUE',k)
+					ADDTEXT str '<td align="middle">',temp,'</td>'
+				ENDFOR
+				ADDTEXT str '</tr>'
+			ENDFOR
+		ENDWHEN
+					
+		COPYHTML #str
+......................
+......................
+......................
+
+		USING 'COPYHTML'
+		
+		<tr><td colspan=4><hr></td></tr>
+		<tr>
+		<td colspan=4 bgcolor="#1E64C0"><strong><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2>Across Dimension :
+		#dimcolrequested1
+		</font></strong></td></tr>
+		ENDUSING
+		str=''	
+		
+......................
+............... Display Across dimension members
+......................
+		WHEN colmem1 eq 'All'
+			FOR i,1,GETMEMBERS(dimcolrequested1,'c1list'),4
+				ADDTEXT str '<tr>'
+				FOR k,i,i+3,1
+					ADDTEXT str '<td align="middle">',c1list[k],'</td>'
+				ENDFOR
+				ADDTEXT str '</tr>'
+			ENDFOR
+		ELSE
+			FOR i,1,nrcolmem1,4
+				ADDTEXT '<tr>'
+				FOR k,i,i+3,1
+					temp = PARSECSV(colmem1,'TEXT_or_VALUE',k)
+					ADDTEXT str '<td align="middle">',temp,'</td>'
+				ENDFOR
+				ADDTEXT str '</tr>'
+			ENDFOR
+		ENDWHEN
+		ADDTEXT str '<tr><td colspan=4><hr></td></tr>'
+		COPYHTML #str
+......................
+......................
+......................
+			
+		WHEN dimcolrequested2 ne 'None'
+			USING 'COPYHTML'
+			<tr>
+			<td colspan=4 bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Across Dimension 2:
+			#dimcolrequested2
+			</strong></font></td></tr>
+			ENDUSING
+			
+			str=''	
+			
+...........................
+...................... Display 2nd Across dimension members
+...........................
+			WHEN colmem2 eq 'All'
+				FOR i,1,GETMEMBERS(dimcolrequested2,'c2list'),4
+					ADDTEXT str '<tr>'
+					FOR k,i,i+3,1
+						ADDTEXT str '<td align="middle">',c2list[k],'</td>'
+					ENDFOR
+					ADDTEXT str '</tr>'
+				ENDFOR
+			ELSE
+				FOR i,1,nrcolmem2,4
+					ADDTEXT '<tr>'
+					FOR k,i,i+3,1
+						temp = PARSECSV(colmem2,'TEXT_or_VALUE',k)
+						ADDTEXT str '<td align="middle">',temp,'</td>'
+					ENDFOR
+					ADDTEXT str '</tr>'
+				ENDFOR
+			ENDWHEN
+				ADDTEXT str '<tr><td colspan=4><hr></td></tr>'                              
+			COPYHTML #str
+...........................
+...........................
+...........................
+
+		ENDWHEN
+		
+		USING 'COPYHTML'
+		
+		<tr>
+		<td colspan=4 bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Droplists</strong></font></td></tr>
+		ENDUSING
+		
+		
+		str=''	
+		
+...........................
+................... Display Droplists/Filters and the default member/filter member
+...........................	
+		FOR i,1,x,1
+			WHEN droplist[i] eq '0'
+				textdes = ''
+				textmem = 'Default Member: '
+				ADDTEXT str '<tr><td colspan=3 align="middle">',textdes,mdimensions[drop[i]],'</td>'
+				ADDTEXT str '<td align="middle">',textmem,defaultmemlist[i],'</td>'
+				ADDTEXT str '</tr>'
+			ENDWHEN
+		ENDFOR
+		FOR i,1,x,1
+			WHEN droplist[i] eq '1'
+				textdes = '(Filter) '
+				textmem = '(By) '
+				ADDTEXT str '<tr><td colspan=3 align="middle">',textdes,mdimensions[drop[i]],'</td>'
+				ADDTEXT str '<td align="middle">',textmem,defaultmemlist[i],'</td>'
+				ADDTEXT str '</tr>'
+			ENDWHEN
+		ENDFOR
+		COPYHTML #str
+		str = ''
+...........................
+...........................
+...........................
+
+		WHEN gridlines ne 'nogridlines'
+			tgridlines = 'On'
+		ELSE
+			tgridlines = 'Off'
+		ENDWHEN
+		WHEN headers ne 'noheaders'
+			theaders = 'On'
+		ELSE
+			theaders = 'Off'
+		ENDWHEN
+		USING 'COPYHTML'
+		<tr><td colspan=4><hr></td></tr>
+		<tr>
+		<td colspan=4 bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Formatting and Optional Components</strong></font></td></tr>
+		<tr>
+		 <td width="20%" bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Gridlines</strong></font></td>
+		 <td align="middle">
+		 #tgridlines
+		 </td>
+		 <td width="20%" bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Headers</strong></font></td>
+		 <td align="middle">
+		 #theaders
+		 </td>
+		</tr>
+		<tr>
+		 <td width="20%" bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Report Font</strong></font></td>
+		 <td align="middle">
+		 #rptfont
+		 </td>
+		 <td width="20%" bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Column Width</font></td>
+		 <td align="middle">
+		 #colwidth
+		 </td>
+		</tr>
+		<tr>
+		 <td width="20%" bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Report Font Size</strong></font></td>
+		 <td align="middle">
+		 #rptfontsize
+		 </td>
+		 <td width="20%" bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Title Font Size</font></td>
+		 <td align="middle">
+		 #titlefontsize
+		 </td>
+		</tr>
+		<tr>
+		 <td width="20%" bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Borders</strong></font></td>
+		 <td align="middle">
+		 #borders
+		 </td>
+		 <td width="20%" bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Decimal Place</strong></font></td>
+		 <td align="middle">
+		 #decplace
+		 </td></tr>
+		
+		ENDUSING
+		
+		WHEN dimcolrequested2 ne 'None'
+			ADDTEXT str 0,'<tr><td width="20%" bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Variance</strong></font></td>'
+			ADDTEXT str '<td align="middle">',variance,'</td></tr>'
+		ELSE
+			ADDTEXT str 0,'<tr><td width="20%" bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Chart Select</strong></font></td>'
+			ADDTEXT str '<td align="middle">',chartselect,'</td></tr>'
+		ENDWHEN
+		COPYHTML #str
+		str = ''
+		WHEN variance eq 'On'
+			ADDTEXT str 0,'<tr><td colspan=4><hr></td></tr><tr><td colspan=4 bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Variance Settings</strong></font></td></tr>'
+			ADDTEXT str '<tr><td width="20%" bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Variance Member 1</strong></font></td>'
+			ADDTEXT str '<td align="middle">',variancemem1,'</td>'
+			ADDTEXT str '<td width="20%" bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Variance Member 2</strong></font></td>'
+			ADDTEXT str '<td align="middle">',variancemem2,'</td></tr>'
+			ADDTEXT str '<tr><td width="20%" bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff size=2><strong>Variance Calculation</strong></font></td>'
+			ADDTEXT str '<td align="middle">',variancecalc,'</td></tr>'
+		ENDWHEN
+		COPYHTML #str
+		
+		WHEN mode ne ''
+			edittext = 'updated'
+		ELSE
+			edittext = 'created'
+		ENDWHEN
+		ADDTEXT str 0,'<tr><td colspan=4><hr><p><strong><font color="#1E64C0" size=3>"',#rptname,'" report will be ',edittext,' with the above specifications.</font></strong></p><hr>'
+		ADDTEXT str '</td></tr>'   
+        	
+        ADDTEXT str '</tr></table>' 
+        
+        COPYHTML #str
+
+        
+RETURN

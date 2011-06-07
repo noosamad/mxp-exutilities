@@ -1,0 +1,171 @@
+PROCEDURE RW_Step1
+
+API_START
+WITH library = 'reportwiz'
+
+
+	userId = 0
+	mxpUserInfo
+	with action = 'getUserId'
+	with userLogin = _username
+	with userId as userId
+	
+	prjrequested = getFormText('prjrequested','')
+	rptname = getFormText('rptname','')
+	progress = getFormText('progress','')
+	editrpt = getFormText('editrpt','')
+	
+	modelrequested = ''
+	gridlines = ''
+	headers = ''
+	selected = ''
+	
+	WHEN editrpt ne ''
+		nrx = SPLIT('-',editrpt)
+		prjrequested = _split[1]
+		rptname = _split[2]
+	ENDWHEN
+	
+	inifile = concat('U',userId,'-',prjrequested,'-',rptname)
+	tempfile = concat(inifile,'-temp')
+	cini = concat(inifile,'.ini')
+	ctemp = concat(tempfile,'.ini')
+	
+......................
+........ Check if in create/edit mode
+......................
+
+	reportwiz[1] = ''
+	_storage = concat('ReportWiz-U',userId)
+	READ STORAGE
+	checkini=0
+	
+	nrreport = ITEMSINFO('reportwiz','ITEMS')
+	FOR i,1,nrreport,1
+		WHEN UPPERCASE(reportwiz[i]) eq UPPERCASE(inifile)
+			checkini = checkini + 1
+		ENDWHEN
+	ENDFOR
+	
+	WHEN checkini eq 0
+		mode = ''
+	ELSE
+		mode = ' (Edit Mode)'
+	ENDWHEN
+	
+.....................
+....... Backup ini file when in edit mode
+.....................
+
+	WHEN checkini ne 0
+		filelocation = _datadir
+		ADDTEXT filelocation '/userdata/reportwiz'
+		directory filelocation
+		delete dos ctemp
+		COPY FILE cini TO ctemp
+	ENDWHEN
+	
+	_storage = concat('ReportWiz-U',userId)
+	
+	READ STORAGE
+	
+	_storage = tempfile
+	xx=WRITEINFO('progress','progress')
+	xx=WRITEINFO('rptname','rptname')
+	xx=WRITEINFO('prjrequested','prjrequested')
+	
+	READ STORAGE
+		
+	USING 'COPYHTML'
+	
+  <tr>
+    <td colspan=4>
+      <p align="center"><font color="#1E64C0" 
+      size=4><strong>Report Specifications
+      #mode
+      </strong></font> </p></td></tr>
+	
+        <tr>
+          <td width="20%" bgcolor="#1E64C0"><font 
+            style="BACKGROUND-COLOR: #1E64C0" color=#ffffff 
+            size=2><strong>Project</strong></font></td>
+          <td align="middle">
+          #prjrequested
+          </td>
+          <td width="20%" bgcolor="#1E64C0"><font 
+            style="BACKGROUND-COLOR: #1E64C0" color=#ffffff 
+            size=2><strong>Model</strong></font></td>
+          <td align="middle">          
+          <select style="WIDTH: 210px" size="1" name="modelrequested">
+       ENDUSING
+       		PROJECT #prjrequested
+       		mnr = ITEMSINFO('_PROJECTMODELS','ITEMS')
+       		str=''
+       		FOR i,1,mnr,1
+       			MODEL _PROJECTMODELS[i]
+       			
+       			WHEN _PROJECTMODELS[i] eq modelrequested
+       				selected = 'selected'
+       			ELSE
+       				selected = ''
+       			ENDWHEN
+       			
+       			WHEN _CASCADEISTRANSACTION ne 1
+             			ADDTEXT str '<option value="',_PROJECTMODELS[i],'" ',selected,'>',_PROJECTMODELS[i],'</option>'
+             		ENDWHEN
+             	ENDFOR
+             	ADDTEXT str '</select></td></tr>'
+             	COPYHTML #str
+      USING 'COPYHTML'
+        <tr>
+          <td width="20%" bgcolor="#1E64C0"><font 
+            style="BACKGROUND-COLOR: #1E64C0" color=#ffffff 
+            size=2><strong>Gridlines</strong></font></td>
+          <td align="middle">
+      ENDUSING
+      ychecked = ''
+      nchecked = ''
+	WHEN gridlines eq 'nogridlines' OR modelrequested eq ''
+		nchecked = 'checked'
+	ELSE
+		ychecked = 'checked'
+	ENDWHEN
+	
+	USING 'COPYHTML'
+	<input value=" " type="radio" name="gridlines"
+	#ychecked
+	> Yes<strong><font 
+            size=2>&nbsp;</font></strong> &nbsp;
+            <input value="nogridlines" type="radio" name="gridlines" 
+        #nchecked
+        >  No</td>
+          <td width="20%" bgcolor="#1E64C0"><font 
+            style="BACKGROUND-COLOR: #1E64C0" color=#ffffff 
+            size=2><strong>Headers</strong></font></td>
+          <td align="middle">
+      ENDUSING
+      	ychecked = ''
+      	nchecked = ''
+	WHEN headers eq 'noheaders' OR modelrequested eq ''
+		nchecked = 'checked'
+	ELSE
+		ychecked = 'checked'
+	ENDWHEN
+	
+	USING 'COPYHTML'
+            <input value=" " type="radio" name="headers"
+            #ychecked
+            > Yes<strong><font 
+            size=2>&nbsp;</font></strong> &nbsp;
+            <input value="noheaders" type="radio" name="headers" 
+            #nchecked
+            >  No</td>
+            </tr></table>
+            ENDUSING
+            ADDTEXT str 0,'<input type="hidden" name="prjrequested" value="',prjrequested,'">'
+            ADDTEXT str '<input type="hidden" name="rptname" value="',rptname,'">'
+        COPYHTML #str
+	ADDTEXT str 0,'<p><input type="hidden" name="fromstep" value=1><input type="hidden" name="progress" value=2><input type="submit" value="Next" style="WIDTH: 100px"></form></p></td></tr>'
+        COPYHTML #str
+
+RETURN

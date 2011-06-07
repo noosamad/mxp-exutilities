@@ -1,0 +1,129 @@
+﻿PROCEDURE reportScript
+STARTREPORT
+...
+... This sample report demonstrates the ability to report a rolling 12 months report where the actuals are reported
+... up until the selected month, and then the budget figures are used thereafter. It uses the standard demo models,
+... same principal could be used for any report.
+...
+...
+NOGRIDLINES
+NOHEADERS
+API_START
+  with noHTML=1
+...
+...
+Project 'ABC Group Demo' OWNER 'Tom'
+Model 'Profit and Loss'
+...
+... Report Formats
+...
+COLUMNWIDTH 150,1
+COLUMNWIDTH 68,2-50
+NEGCOLOUR 'Red'
+STYLE HEADING FONTSIZE 12 FONT 'Calibri'
+STYLE REPORT FONTSIZE 12 FONT 'Calibri'
+STYLE DATA DECIMALS 0
+...
+... Output title
+...
+varTitle = 'Rolling Forecast Report Produced on '
+FORMAT DATE 'dd-MMM-yyyy' for _today
+ADDTEXT varTitle #_today
+STYLE REPORT FONTSIZE 14 BOLD
+TEXT varTitle
+STYLE REPORT FONTSIZE 12 NOBOLD
+...
+... Default ot computer date month as current month
+...
+curmth=DATEINFO(_today,'MONTH') - 1
+WHEN curmth LT 1
+    curmth = 1
+ENDWHEN
+SKIP 1
+...
+... define values for selector for the month for which actuals will be reported up to
+...
+default varAns=''
+np=ITEMSINFO('_MODELPERIODS','ITEMS')
+FOR n,1,np-1,1
+    choice[n]=_MODELPERIODS[n]
+ENDFOR
+defchoice=choice[curmth]
+...
+... output the month selector
+...
+TEXT 'Month (1st Bud Month)'
+SAMELINE
+DROPLIST 'MXO' CHOICE #choice DEFAULT #defchoice ANSWER 'varAns'  WIDTH 100
+...
+... This statement looks up the selection from the list
+...
+nrChosen=inlist(varans,'choice')
+...
+... output country and currency droplists
+...
+DIFFERENTLINE
+TEXT 'Country'
+SAMELINE
+DROPLIST 'Countries' DEFAULT 'World' WIDTH 100
+DIFFERENTLINE
+TEXT 'Currency'
+SAMELINE
+DROPLIST 'Currency' DEFAULT 'USD' CHOICE 'AUD','CAD','EUR','GBP','NZD','SGD','THB','USD'  WIDTH 100
+DIFFERENTLINE
+SKIP 1
+...
+... Output the column headings (variable based on Act/Bud)
+...
+STYLE REPORT BOLD FONT 'Arial' FONTSIZE 12 BGCOLOR 'LIGHTSTEELBLUE' COLOR 'WHITE' CENTER
+pr=np-1
+TEXT 'LineItem'
+SAMELINE
+BGCOLOR 'SEAGREEN'
+FOR L,1,np,1
+    head=_MODELPERIODS[L]
+    SWITCH
+    CASE L EQ np
+        . do nothing
+    CASE L LT nrchosen
+        ADDTEXT head ' ACT'
+    OTHERWISE
+        BGCOLOR 'LIGHTSTEELBLUE'
+        ADDTEXT head ' FCST'
+    ENDSWITCH
+    TEXT #head
+ENDFOR
+DIFFERENTLINE
+STYLE REPORT NOBOLD BGCOLOR 'WHITE' COLOR 'BLACK' LEFT
+...
+... Now get the actuals and budgets and calculate the variable year total
+... and output the row formatted
+...
+DROPLIST 'version' choice 'budget'
+columns 1-np
+READ MEMORY 'ALL' INTO 'series','seriesdesc' COUNTINTO 'nrcols','nrrows'
+DROPLIST 'version' CHOICE 'actual'
+READ MEMORY 'ALL' INTO 'actseries','actseriesdesc' COUNTINTO 'nracols','nrarows'
+FORMAT '<<<<9' for nr
+FOR nr,1,nrrows,1
+    varSeries = 'series'
+    varActSeries = 'actseries'
+    ADDTEXT varSeries nr
+    TRIM varSeries
+    ADDTEXT varActSeries nr
+    TRIM varActSeries
+    FOR nc,1,pr,1
+        WHEN nc LT nrchosen
+            ##varSeries[nc]=##varActSeries[nc]
+        ENDWHEN
+        ##varSeries[np]=##varSeries[np]+##varSeries[nc]
+    ENDFOR
+     outputFormattedMeasureData
+                WITH varMeasure = #_modelmeasures[nr]
+                WITH varData = ##varSeries
+                WITH startDataCol = 2
+                WITH decplaces = 0
+                WITH datacols = nrcols
+ENDFOR
+ENDREPORT
+RETURN

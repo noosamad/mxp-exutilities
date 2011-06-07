@@ -1,0 +1,43 @@
+.................................................................................
+...........................Screen for choosing between creating or
+...........................editing Report Wizard compatible reports
+.................................................................................
+
+PROCEDURE RW_ModeSelect
+API_START
+WITH library = 'reportwiz'
+
+	userId = 0
+	mxpUserInfo
+	with action = 'getUserId'
+	with userLogin = _username
+	with userId as userId
+
+	reportwiz[1] = ''
+	_storage = concat('ReportWiz-U',userId)
+	xx=WRITEINFO('username','_username')
+	READ STORAGE
+	
+	
+	USING 'COPYHTML'
+  <tr>
+    <td>
+      <p align="center"><font color="#1E64C0" 
+      size=4><strong>Mode Select</strong></font> </p></td></tr>
+        <tr>
+          <td align="middle"><input type="hidden" name="progress">
+          <input type="button" value="Create a new Report" style="WIDTH: 400px" onclick="skipto('create');"></td></tr>
+        
+        ENDUSING
+	
+        str=''
+	nrreport = ITEMSINFO('reportwiz','ITEMS')
+	WHEN nrreport ne 0
+		ADDTEXT str 0,'<tr><td align="middle"><input class="ui-button ui-widget ui-state-default ui-corner-all" type="button" value="Edit an existing Report" style="WIDTH: 400px" onclick="skipto(''edit'');"></td></tr>'
+	ELSE
+		ADDTEXT str 0,'<tr><td align="middle"><input class="ui-button ui-widget ui-state-default ui-corner-all" type="button" value="Edit an existing Report" disabled style="WIDTH: 400px"></td></tr>'
+	ENDWHEN
+	COPYHTML #str
+
+RETURN
+

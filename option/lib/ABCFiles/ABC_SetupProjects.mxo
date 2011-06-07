@@ -1,0 +1,22 @@
+PROCEDURE ABC_SETUPPROJECT
+
+restorename='ABC Group Demo'
+restoreuser='Tom'
+COPYHTML 'Commencing ABC Group Demo Project Restore'
+STREAMHTML <BR />
+api_restore
+  with backupname = restorename
+  with projectOwner = restoreuser
+  with restoreAsLocal = 1
+COPYHTML 'Restored ABC Group Demo'
+STREAMHTML <BR />
+.COPYHTML 'Commencing ABC Beverages Sales Project Restore'
+.STREAMHTML <BR />
+.restorename='ABC Beverages Sales'
+.api_restore
+.  with backupname = restorename
+.  with projectOwner = restoreuser
+.  with restoreAsLocal = 1
+.COPYHTML 'Restored ABC Beverages Sales'
+.
+RETURN

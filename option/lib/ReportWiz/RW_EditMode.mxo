@@ -1,0 +1,48 @@
+PROCEDURE RW_EditMode
+API_START
+WITH library = 'reportwiz'
+
+	userId = 0
+	mxpUserInfo
+	with action = 'getUserId'
+	with userLogin = _username
+	with userId as userId
+	
+	_storage = concat('ReportWiz-U',userId)
+	READ STORAGE
+	nrreport = ITEMSINFO('reportwiz','ITEMS')
+	
+
+	USING 'COPYHTML'
+       
+  <tr>
+    <td colspan=4>
+      <p align="center"><font color="#1E64C0" 
+      size=4><strong>Report Specifications (Edit Mode)
+      </strong></font> </p></td></tr>
+        <tr>
+          <td colspan=2 width="20%" bgcolor="#1E64C0"><font 
+            style="BACKGROUND-COLOR: #1E64C0" color=#ffffff 
+            size=2><strong>Report</strong></font></td>
+          <td colspan=2 align="middle">
+          <select style="WIDTH: 400px" size="1" name="editrpt">
+
+        ENDUSING
+
+	FOR i,1,nrreport,1
+		nrs = SPLIT('-',reportwiz[i])
+		tempprj = _split[2]
+		temprptname = _split[3]
+		temp = concat(tempprj,'-',temprptname)
+		temps = concat(tempprj,' - ',temprptname)
+		ADDTEXT str '<option value="',temp,'">',temps,'</option>'
+	ENDFOR
+	ADDTEXT str '</select><input type="hidden" name="progress" value="1"></td>'
+	COPYHTML #str
+	
+      USING 'COPYHTML'
+	<tr><td colspan=4><font color="red">Note: Any prior scripting changes will be overwritten.</font></td></tr>
+	<tr><td colspan=4><input type="submit" value="Edit" style="WIDTH: 100px"></td></tr></table>
+	ENDUSING
+RETURN
+

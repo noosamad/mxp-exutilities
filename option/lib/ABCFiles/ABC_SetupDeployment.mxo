@@ -1,0 +1,168 @@
+Procedure ABCSetupUsers
+.API_START
+project 'ABC Group Demo' owner 'tom'
+model 'Expenses'
+
+.// set status
+	expnode[1]='France'
+	expnode[2]='UK'
+	expnode[3]='Singapore'
+	expnode[4]='Australia'
+	expnode[5]='Thailand'
+	expnode[6]='USA'
+	expnode[7]='Canada'
+	expnode[8]='Europe'
+	expnode[9]='North America'
+	expstat[1]='Submitted'
+	expstat[2]='Submitted'
+	expstat[3]='Submitted'
+	expstat[4]='Submitted'
+	expstat[5]='Not Started'
+	expstat[6]='Submitted'
+	expstat[7]='Submitted'
+	expstat[8]='Submitted'
+	expstat[9]='Submitted'
+	for i,1,9,1
+		node=expnode[i]
+		status=expstat[i]
+		COPYHTML 'Adding Node '
+		STREAMHTML #node
+		STREAMHTML ' as '
+		STREAMHTML #status
+		api_setWorkflowStatus
+		  with node = node
+		  with status = status
+		  with checkPermit = 0
+
+		STREAMHTML ... Done
+		COPYHTML <BR />
+	endfor
+
+.// set deployment for expenses
+nodeList[1]='World'
+loginList[1]='greg'
+rightList[1]='Reviewer'
+detailList[1] =' '
+nodeList[2]='North America'
+loginList[2]='angus'
+rightList[2]='Reviewer'
+detailList[2] =' '
+nodeList[3]='USA'
+loginList[3]='conrad'
+rightList[3]='Owner'
+detailList[3] ='Budget'
+nodeList[4]='USA'
+loginList[4]='conrad'
+rightList[4]='Viewer'
+detailList[4] ='Actual'
+nodeList[5]='Canada'
+loginList[5]='gavin'
+rightList[5]='Owner'
+detailList[5] ='Budget'
+nodeList[6]='Canada'
+loginList[6]='gavin'
+rightList[6]='Viewer'
+detailList[6] ='Actual'
+nodeList[7]='Singapore'
+loginList[7]='jed'
+rightList[7]='Owner'
+detailList[7] ='Budget'
+nodeList[8]='Singapore'
+loginList[8]='jed'
+rightList[8]='Viewer'
+detailList[8] ='Actual'
+nodeList[9]='Thailand'
+loginList[9]='sutee'
+rightList[9]='Owner'
+detailList[9] ='Budget'
+nodeList[10]='Thailand'
+loginList[10]='sutee'
+rightList[10]='Viewer'
+detailList[10] ='Actual'
+nodeList[11]='Australia'
+loginList[11]='george'
+rightList[11]='Owner'
+detailList[11] ='Budget'
+nodeList[12]='Australia'
+loginList[12]='george'
+rightList[12]='Viewer'
+detailList[12] ='Actual'
+nodeList[13]='Europe'
+loginList[13]='robert'
+rightList[13]='Reviewer'
+detailList[13] =' '
+nodeList[14]='UK'
+loginList[14]='james'
+rightList[14]='Owner'
+detailList[14] ='Budget'
+nodeList[15]='UK'
+loginList[15]='james'
+rightList[15]='Viewer'
+detailList[15] ='Actual'
+nodeList[16]='France'
+loginList[16]='cam'
+rightList[16]='Owner'
+detailList[16] ='Budget'
+nodeList[17]='France'
+loginList[17]='cam'
+rightList[17]='Viewer'
+detailList[17] ='Actual'
+
+
+dimension = 'Countries'
+FOR j,1,itemsinfo('nodeList', 'items'),1
+	api_deployment
+	  with option = 'add'
+	  with dimension = dimension
+	  with userName = loginList[j]
+	  with member = nodeList[j]
+	  with userRight = rightList[j]
+	  with combList = detailList[j]
+ENDFOR
+
+
+model 'Travel Costs'
+
+delete variable nodeList, loginList, rightList, detailList
+nodeList[1]='Europe'
+loginList[1]='robert'
+rightList[1]='Reviewer'
+nodeList[2]='France'
+loginList[2]='cam'
+rightList[2]='Owner'
+nodeList[3]='UK'
+loginList[3]='james'
+rightList[3]='Owner'
+nodeList[4]='North America'
+loginList[4]='angus'
+rightList[4]='Reviewer'
+nodeList[5]='USA'
+loginList[5]='conrad'
+rightList[5]='Owner'
+nodeList[6]='Canada'
+loginList[6]='gavin'
+rightList[6]='Owner'
+nodeList[7]='Australia'
+loginList[7]='george'
+rightList[7]='Owner'
+nodeList[8]='Singapore'
+loginList[8]='jed'
+rightList[8]='Owner'
+nodeList[9]='Thailand'
+loginList[9]='sutee'
+rightList[9]='Owner'
+
+
+dimension = 'Countries'
+FOR j,1,itemsinfo('nodeList', 'items'),1
+	api_deployment
+	  with option = 'add'
+	  with dimension = dimension
+	  with userName = loginList[j]
+	  with member = nodeList[j]
+	  with userRight = rightList[j]
+ENDFOR
+
+
+COPYHTML Done
+RETURN

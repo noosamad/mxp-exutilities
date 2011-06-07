@@ -1,0 +1,94 @@
+.................................................................................
+...........................Screen for selecting project and report name
+...........................if project/report name combi exists, user will be
+...........................alerted and advised to use a different report name
+.................................................................................
+
+PROCEDURE RW_CreateMode
+API_START
+WITH library = 'reportwiz'
+
+........
+........ Get list of projects which is owned by the user
+........
+	plist[1]=''
+	
+	API_PROJECT
+	WITH option = 'list'
+	WITH projectlist AS plist
+	
+	userId = 0
+	mxpUserInfo
+	with action = 'getUserId'
+	with userLogin = _username
+	with userId as userId
+
+	nrprj = ITEMSINFO('plist','ITEMS')
+........
+........
+........
+
+	prjrequested = getFormText('prjrequested','')
+	rptname = getFormText('rptname','')
+	fromstep = getFormText('fromstep','')
+	mode = getFormText('mode','')
+	
+	reportwiz[1] = ''
+	_storage = concat('ReportWiz-U',userId)
+	READ STORAGE
+	
+
+	USING 'COPYHTML'
+       
+  <tr>
+    <td colspan=4>
+      <p align="center"><font color="#1E64C0" 
+      size=4><strong>Report Specifications</strong></font> </p></td></tr>
+        <tr>
+          <td width="20%" bgcolor="#1E64C0"><font 
+            style="BACKGROUND-COLOR: #1E64C0" color=#ffffff 
+            size=2><strong>Project</strong></font></td>
+          <td align="middle">
+          <select style="WIDTH: 210px" size="1" name="prjrequested">
+          <option value=" " selected> </option>
+
+        ENDUSING
+
+	FOR i,1,nrprj,1
+		WHEN plist[i] eq prjrequested
+			selected = 'selected'
+		ELSE
+			selected = ''
+		ENDWHEN
+		ADDTEXT str '<option value="',plist[i],'" ',selected,'>',plist[i],'</option>'
+	ENDFOR
+	ADDTEXT str '</select><input type="hidden" name="progress" value="checkprjrpt"></td>'
+	COPYHTML #str
+	
+      USING 'COPYHTML'
+          <td width="20%" bgcolor="#1E64C0"><font 
+            style="BACKGROUND-COLOR: #1E64C0" color=#ffffff 
+            size=2><strong>Report Name</strong></font> 
+            </td>
+          <td align="middle"><font style="BACKGROUND-COLOR: #1E64C0" 
+            color=#ffffff size=2><strong><input size="30" name="rptname"></strong></font></td></tr>
+	<tr><td colspan=4><input type="button" value="Next" onclick="checkrptname();" style="WIDTH: 100px"></td></tr></table>
+	ENDUSING
+	
+	nrreports = ITEMSINFO('reportwiz','ITEMS')
+	WHEN nrreports GT 0
+	ADDTEXT str 0,'<p>For Reference:<br><table border="1" cellspacing="0" bordercolor="#dadada"width=50%><th colspan=2><font color="#1E64C0">Existing Report Wizard Reports</font></th>'
+		ADDTEXT str '<tr><td bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff>Project</font></td><td bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff>Report Name</font></td></tr>'
+	
+		FOR i,1,nrreports,1
+			nrs = SPLIT('-',reportwiz[i])
+			tempprj = _split[2]
+			temprptname = _split[3]
+			ADDTEXT str '<tr><td>',tempprj,'</td><td>',temprptname,'</td></tr>'
+		ENDFOR
+	
+		COPYHTML #str
+	ENDWHEN
+      
+RETURN
+

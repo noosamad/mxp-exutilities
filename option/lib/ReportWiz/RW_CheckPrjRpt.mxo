@@ -1,0 +1,85 @@
+PROCEDURE RW_CheckPrjRpt
+API_START
+WITH library = 'reportwiz'
+	
+........
+........ Get list of projects which is owned by the user
+........
+	plist[1]=''
+	
+	API_PROJECT
+	WITH option = 'list'
+	WITH projectlist AS plist
+	
+	userId = 0
+	mxpUserInfo
+	with action = 'getUserId'
+	with userLogin = _username
+	with userId as userId
+	
+	nrprj = ITEMSINFO('plist','ITEMS')
+........
+........
+........
+
+	prjrequested = getFormText('prjrequested','')
+	rptname = getFormText('rptname','')
+	progress = getFormText('progress','')
+	
+	ADDTEXT str 0,'<input type="hidden" name="prjrequested" value="',prjrequested,'">'
+	ADDTEXT str '<input type="hidden" name="rptname" value="',rptname,'">'
+	
+	modelrequested = ''
+	gridlines = ''
+	headers = ''
+	selected = ''
+	
+	inifile = concat('U',userId,'-',prjrequested,'-',rptname)
+	reportwiz[1] = ''
+	_storage = concat('ReportWiz-U',userId)
+	xx=WRITEINFO('username','_username')
+	READ STORAGE
+	checkini=0
+	nrreport = ITEMSINFO('reportwiz','ITEMS')
+	FOR i,1,nrreport,1
+		WHEN UPPERCASE(reportwiz[i]) eq UPPERCASE(inifile)
+			checkini = checkini + 1
+		ENDWHEN
+	ENDFOR
+	.STARTFORM NAME 'rptspecs'
+	WHEN checkini NE 0
+		USING 'COPYHTML'
+		</table><center><h1><font color="red">Warning!</font></h1></td>
+		<center><table border=0><tr><td colspan=2><p><font size=3>Report , "
+		#rptname
+		", already exists for project, "
+		#prjrequested
+		". <br>Please use a different report name.<br>
+		</font></p></td></tr><tr><td colspan=2><br></td></tr>
+		<tr><td colspan=2><br></td></tr><tr>
+		ENDUSING
+		COPYHTML <input type="hidden" name="progress" value="">
+		ADDTEXT str '<input type="hidden" name="prjrequested" value="',prjrequested,'"><input type="hidden" name="rptname" value="',rptname,'">'
+		ADDTEXT str '<td colspan=2 align="middle"><input type="button" value="Back" onclick="skipto(''create'');" style="WIDTH: 100px"></td></tr></table>'
+		
+		COPYHTML #str
+	ELSE
+		
+		.//COPYHTML <body onload="submit();">
+
+		USING 'COPYHTML'
+		</table><br>
+		<center><table border=0><tr><td colspan=2><p><font size=3>Report , "
+		#rptname
+		", will be created for project, "
+		#prjrequested
+		". Proceed to create report?
+		</font></p></td></tr><tr><td colspan=2><br></td></tr>
+		<tr><td colspan=2><br></td></tr><tr>
+		ENDUSING
+		ADDTEXT str '<input type="hidden" name="progress" value="1">'
+		ADDTEXT str '<td colspan=2 align="middle"><input type="submit" value="Yes" style="WIDTH: 100px"><input type="submit" value="No" onclick="document.rptspecs.progress.value=''create'';" style="WIDTH: 100px"></td></tr></table>'
+		COPYHTML #str
+	ENDWHEN
+RETURN
+

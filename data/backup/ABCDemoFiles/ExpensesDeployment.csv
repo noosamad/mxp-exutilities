@@ -1,0 +1,18 @@
+﻿Dimension item,User,Access Right,Editable,Combination
+World,greg,Reviewer,false
+North America,angus,Reviewer,false
+USA,conrad,Owner,false,Budget
+USA,conrad,Viewer,false,Actual
+Canada,gavin,Owner,false,Budget
+Canada,gavin,Viewer,false,Actual
+Singapore,jed,Owner,false,Budget
+Singapore,jed,Viewer,false,Actual
+Thailand,sutee,Owner,false,Budget
+Thailand,sutee,Viewer,false,Actual
+Australia,george,Owner,false,Budget
+Australia,george,Viewer,false,Actual
+Europe,robert,Reviewer,false
+UK,james,Owner,false,Budget
+UK,james,Viewer,false,Actual
+France,cam,Owner,false,Budget
+France,cam,Viewer,false,Actual

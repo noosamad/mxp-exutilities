@@ -1,0 +1,92 @@
+
+PROCEDURE RW_DeleteMode
+API_START
+WITH library = 'reportwiz'
+
+	userId = 0
+	mxpUserInfo
+	with action = 'getUserId'
+	with userLogin = _username
+	with userId as userId
+
+	nrprj = ITEMSINFO('plist','ITEMS')
+	
+	fromstep = getFormText('fromstep','')
+	deleterpt = getFormText('deleterpt','')
+	mode = getFormText('mode','')
+	
+	prjrequested = ''
+	rptname = ''
+	
+	reportwiz[1] = ''
+	_storage = concat('ReportWiz-U',userId)
+	READ STORAGE
+	
+	nrReport = ITEMSINFO('reportwiz','ITEMS')
+	SWITCH
+	CASE deleterpt EQ ''
+	
+		USING 'COPYHTML'
+	       
+	  <tr>
+	    <td colspan=4>
+	      <p align="center"><font color="#1E64C0" 
+	      size=4><strong>Delete Report</strong></font> </p></td></tr>
+		<tr>
+		  <td width="20%" bgcolor="#1E64C0"><font 
+		    style="BACKGROUND-COLOR: #1E64C0" color=#ffffff 
+		    size=2><strong>Reports</strong></font></td>
+		  <td align="middle">
+		  <select style="WIDTH: 410px" size="1" name="deleterpt">
+		  <option value=" " selected> </option>
+	
+		ENDUSING
+		
+		str = ''
+		FOR i,1,nrReport,1
+			ADDTEXT str '<option value="',reportwiz[i],'">',reportwiz[i],'</option>'
+		ENDFOR
+		ADDTEXT str '</td></tr><tr><td colspan=4><input type="Button" value="Delete" style="WIDTH: 100px"></td></tr></table>'
+		COPYHTML #str
+		
+	CASE deleterpt NE '' AND proceed EQ ''
+	
+		_storage = deleterpt
+		READ STORAGE
+		USING 'COPYHTML'
+		</table><center><h1><font color="red">Warning!</font></h1></td>
+		<center><table border=0><tr><td colspan=2><p><font size=3>Proceed to delete report , "
+		#rptname
+		", for project, "
+		#prjrequested
+		"?
+		</font></p></td></tr><tr><td colspan=2><br></td></tr>
+		ENDUSING
+		str = ''
+		ADDTEXT str '<input type=hidden name="deleterpt"><input type=hidden name="proceed">'
+		ADDTEXT str '<input type="Submit" value="Proceed" onclick="this.deleterpt.value=''',deleterpt,''';this.proceed.value=''1'';">'
+		ADDTEXT str '<input type="Submit" value="Back">'
+		COPYHTML #str
+		
+	CASE deleterpt NE '' AND proceed NE ''
+		
+		COPYHTML 23423
+	ENDSWITCH
+	
+	nrreports = ITEMSINFO('reportwiz','ITEMS')
+	WHEN nrreports GT 0
+	ADDTEXT str 0,'<p>For Reference:<br><table border="1" cellspacing="0" bordercolor="#dadada"width=50%><th colspan=2><font color="#1E64C0">Existing Report Wizard Reports</font></th>'
+		ADDTEXT str '<tr><td bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff>Project</font></td><td bgcolor="#1E64C0"><font style="BACKGROUND-COLOR: #1E64C0" color=#ffffff>Report Name</font></td></tr>'
+	
+		FOR i,1,nrreports,1
+			nrs = SPLIT('-',reportwiz[i])
+			tempprj = _split[2]
+			temprptname = _split[3]
+			ADDTEXT str '<tr><td>',tempprj,'</td><td>',temprptname,'</td></tr>'
+		ENDFOR
+	
+		COPYHTML #str
+	ENDWHEN
+      
+RETURN
+
